@@ -20,7 +20,6 @@ const initialTargets = {
 const timeSlots = ['09:00', '11:00', '13:00', '15:00', '17:00'];
 
 export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
-  // Nossos estados (nenhuma mudança aqui)
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -30,7 +29,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lógica de upload (nenhuma mudança aqui)
   const supabase = createClient();
   const UPLOAD_PRESET = 'zupltfoo';
   const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -108,12 +106,9 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
     }
   };
 
-  // --- JSX ATUALIZADO COM AS CLASSES DO TAILWIND ---
   return (
-    // Container do formulário com fundo, borda, sombra e espaçamento
     <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 space-y-6">
       
-      {/* Seção do Arquivo */}
       <div>
         <label className="block text-sm font-medium text-slate-700">Vídeo</label>
         <div className="mt-1">
@@ -133,7 +128,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         </div>
       </div>
 
-      {/* Seção do Título */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-slate-700">Título</label>
         <input 
@@ -146,7 +140,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         />
       </div>
 
-      {/* Seção da Descrição */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-slate-700">Descrição</label>
         <textarea 
@@ -159,7 +152,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         />
       </div>
       
-      {/* Grid para Data e Hora */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="scheduleDate" className="block text-sm font-medium text-slate-700">Data do Agendamento</label>
@@ -170,6 +162,8 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
             onChange={(e) => setScheduleDate(e.target.value)} 
             className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm
               focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+            // --- MUDANÇA PRINCIPAL AQUI ---
+            onClick={(e) => (e.target as HTMLInputElement).showPicker()}
           />
         </div>
         <div>
@@ -189,7 +183,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         </div>
       </div>
       
-      {/* Seção das Redes Sociais */}
       <div>
         <label className="block text-sm font-medium text-slate-700">Postar em:</label>
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -208,7 +201,6 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         </div>
       </div>
       
-      {/* Botão de Agendar */}
       <button 
         onClick={handleUpload} 
         disabled={isLoading || !file}
