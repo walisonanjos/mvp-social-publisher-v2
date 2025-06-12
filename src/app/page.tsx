@@ -3,7 +3,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client"; // Corrigindo o caminho do import
+// CAMINHOS DE IMPORT CORRIGIDOS:
+import { createClient } from "@/lib/supabaseClient"; 
 import AuthForm from "@/components/AuthForm";
 import UploadForm from "@/components/UploadForm";
 import VideoList from "@/components/VideoList";
@@ -98,9 +99,6 @@ export default function Home() {
       />
       <hr className="my-8 border-gray-700" />
       
-      {/* AQUI ESTÁ A CORREÇÃO:
-        Estamos passando a prop 'videos' para o componente VideoList.
-      */}
       <VideoList videos={videos} />
 
     </div>
