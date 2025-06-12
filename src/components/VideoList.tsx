@@ -10,7 +10,7 @@ type Video = {
   created_at: string;
   video_url: string;
   user_id: string;
-  scheduled_at: string; // Garantimos que scheduled_at está no tipo
+  scheduled_at: string;
   title: string;
 };
 
@@ -40,7 +40,7 @@ export default function VideoList() {
         const { data, error } = await supabase
           .from('videos')
           .select('*')
-          .order('scheduled_at', { ascending: true }); // Ordena pelos próximos agendamentos
+          .order('scheduled_at', { ascending: true });
 
         if (error) throw error;
         if (data) setVideos(data);
@@ -51,7 +51,7 @@ export default function VideoList() {
       }
     };
     getVideos();
-  }, []);
+  }, [supabase]); // <--- A MUDANÇA É AQUI, ADICIONAMOS 'supabase'
 
   if (loading) {
     return <p>Carregando seus agendamentos...</p>;
@@ -63,31 +63,30 @@ export default function VideoList() {
 
   return (
     <div>
-      <h2>Seus Agendamentos</h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+      <h2 className="text-xl font-semibold mb-4">Seus Agendamentos</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {videos.map((video) => (
-          <div key={video.id} style={{ border: '1px solid #ccc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
-            <video width="320" height="240" controls preload="metadata">
+          <div key={video.id} className="bg-white border border-slate-200 rounded-lg shadow-md overflow-hidden">
+            <video className="w-full h-48 object-cover" controls preload="metadata">
               <source src={`${video.video_url}#t=0.1`} type="video/mp4" />
               Seu navegador não suporta a tag de vídeo.
             </video>
-            <h4>{video.title || 'Vídeo sem título'}</h4>
-            
-            {/* --- MUDANÇA PRINCIPAL AQUI --- */}
-            <p>
-              <strong>Agendado para:</strong><br/> 
-              {new Date(video.scheduled_at).toLocaleString('pt-BR', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-              })}
-            </p>
-            
-            <button 
-              onClick={() => handleDelete(video.id)} 
-              style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              Excluir
-            </button>
+            <div className="p-4">
+              <h4 className="font-bold text-lg truncate">{video.title || 'Vídeo sem título'}</h4>
+              <p className="text-sm text-slate-600 mt-1">
+                <strong>Agendado para:</strong><br/> 
+                {new Date(video.scheduled_at).toLocaleString('pt-BR', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })}
+              </p>
+              <button 
+                onClick={() => handleDelete(video.id)} 
+                className="w-full mt-4 bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         ))}
       </div>
