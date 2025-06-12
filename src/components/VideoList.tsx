@@ -1,95 +1,94 @@
 // src/components/VideoList.tsx
 
-'use client';
+import React from 'react';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabaseClient';
-
-type Video = {
-  id: number;
-  created_at: string;
-  video_url: string;
-  user_id: string;
-  scheduled_at: string;
+// Definindo a tipagem para cada objeto de vídeo
+interface Video {
+  id: string;
   title: string;
-};
+  video_url: string;
+  scheduled_at: string; // A data vem como string do Supabase
+}
 
-export default function VideoList() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+// Definindo a tipagem para as props do componente
+interface VideoListProps {
+  videos: Video[];
+}
 
-  const handleDelete = async (videoId: number) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) {
-      return;
-    }
-    try {
-      const { error } = await supabase.from('videos').delete().match({ id: videoId });
-      if (error) throw error;
-      setVideos(currentVideos => currentVideos.filter(video => video.id !== videoId));
-      alert('Agendamento excluído com sucesso!');
-    } catch (error) {
-      alert('Erro ao excluir o agendamento: ' + (error as Error).message);
-    }
+const VideoList: React.FC<VideoListProps> = ({ videos }) => {
+  // Função para formatar a data para um padrão brasileiro amigável
+  const formatScheduleDate = (dateString: string) => {
+    if (!dateString) return 'Data não definida';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    }).format(date);
   };
 
-  useEffect(() => {
-    const getVideos = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('videos')
-          .select('*')
-          .order('scheduled_at', { ascending: true });
-
-        if (error) throw error;
-        if (data) setVideos(data);
-      } catch (error) {
-        alert('Erro ao buscar os vídeos: ' + (error as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getVideos();
-  }, [supabase]); // <--- A MUDANÇA É AQUI, ADICIONAMOS 'supabase'
-
-  if (loading) {
-    return <p>Carregando seus agendamentos...</p>;
-  }
-  
   if (videos.length === 0) {
-    return <p>Você ainda não tem nenhum vídeo agendado.</p>;
+    return (
+      <div className="mt-10 rounded-lg border border-dashed border-gray-700 bg-gray-800/50 p-12 text-center">
+        <h3 className="text-lg font-medium text-white">Nenhum agendamento por aqui</h3>
+        <p className="mt-2 text-sm text-gray-400">
+          Use o formulário acima para agendar sua primeira postagem.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Seus Agendamentos</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="mt-12">
+      <h2 className="text-2xl font-bold tracking-tight text-white mb-6">
+        Meus Agendamentos
+      </h2>
+      
+      {/* Container da grade de vídeos */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        
+        {/* Mapeando cada vídeo para um card */}
         {videos.map((video) => (
-          <div key={video.id} className="bg-white border border-slate-200 rounded-lg shadow-md overflow-hidden">
-            <video className="w-full h-48 object-cover" controls preload="metadata">
-              <source src={`${video.video_url}#t=0.1`} type="video/mp4" />
-              Seu navegador não suporta a tag de vídeo.
-            </video>
-            <div className="p-4">
-              <h4 className="font-bold text-lg truncate">{video.title || 'Vídeo sem título'}</h4>
-              <p className="text-sm text-slate-600 mt-1">
-                <strong>Agendado para:</strong><br/> 
-                {new Date(video.scheduled_at).toLocaleString('pt-BR', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
-              </p>
-              <button 
-                onClick={() => handleDelete(video.id)} 
-                className="w-full mt-4 bg-red-500 text-white font-bold py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          <div
+            key={video.id}
+            className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 hover:shadow-teal-500/20"
+          >
+            {/* Placeholder para a Thumbnail do Vídeo */}
+            <div className="aspect-w-9 aspect-h-16 bg-gray-700 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-12 w-12 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                Excluir
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 10l4.55a1 1 0 011.45.89V16.1a1 1 0 01-1.45.89L15 14M5 9v6a2 2 0 002 2h4a2 2 0 002-2V9a2 2 0 00-2-2H7a2 2 0 00-2 2z"
+                />
+              </svg>
+            </div>
+            
+            {/* Conteúdo do Card (Título e Data) */}
+            <div className="flex flex-1 flex-col space-y-2 p-4">
+              <h3 className="text-base font-medium text-white">
+                {video.title}
+              </h3>
+              <div className="flex flex-1 flex-col justify-end">
+                <p className="text-sm text-gray-400">
+                  Agendado para:
+                </p>
+                <p className="text-sm font-semibold text-teal-400">
+                  {formatScheduleDate(video.scheduled_at)}
+                </p>
+              </div>
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-}
+};
+
+export default VideoList;
