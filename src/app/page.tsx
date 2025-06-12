@@ -28,8 +28,6 @@ export default function Home() {
     const checkUser = async () => {
       const { data, error } = await supabase.auth.getUser();
       
-      // AQUI ESTÁ A CORREÇÃO:
-      // Agora estamos "usando" a variável 'error', então o linter ficará feliz.
       if (error) {
         console.error("Erro ao verificar a sessão do usuário:", error.message);
       }
@@ -99,10 +97,14 @@ export default function Home() {
           Sair
         </button>
       </div>
+
+      {/* AQUI ESTÁ A CORREÇÃO:
+        Removemos a propriedade 'user={user}', pois o componente não a utiliza.
+      */}
       <UploadForm
-        user={user}
         onUploadSuccess={() => setRefreshKey(refreshKey + 1)}
       />
+
       <hr className="my-8 border-gray-700" />
       
       <VideoList videos={videos} />
