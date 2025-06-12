@@ -3,11 +3,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// MUDANÇA: Usando caminhos relativos para garantir que os arquivos sejam encontrados.
-import { createClient } from "../lib/supabaseClient"; 
-import AuthForm from "../components/AuthForm";
+// MUDANÇA 1: Corrigindo o nome do componente importado
+import Auth from "../components/Auth"; 
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
+import { createClient } from "../lib/supabaseClient"; 
 import { User } from "@supabase/supabase-js";
 
 // Definindo a tipagem para cada objeto de vídeo
@@ -77,7 +77,8 @@ export default function Home() {
   }
 
   if (!user) {
-    return <AuthForm />;
+    // MUDANÇA 2: Usando o componente correto
+    return <Auth />;
   }
 
   return (
