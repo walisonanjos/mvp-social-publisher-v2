@@ -3,11 +3,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// CAMINHOS DE IMPORT CORRIGIDOS:
-import { createClient } from "@/lib/supabaseClient"; 
-import AuthForm from "@/components/AuthForm";
-import UploadForm from "@/components/UploadForm";
-import VideoList from "@/components/VideoList";
+// MUDANÇA: Usando caminhos relativos para garantir que os arquivos sejam encontrados.
+import { createClient } from "../lib/supabaseClient"; 
+import AuthForm from "../components/AuthForm";
+import UploadForm from "../components/UploadForm";
+import VideoList from "../components/VideoList";
 import { User } from "@supabase/supabase-js";
 
 // Definindo a tipagem para cada objeto de vídeo
