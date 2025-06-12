@@ -3,7 +3,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// MUDANÇA 1: Corrigindo o nome do componente importado
 import Auth from "../components/Auth"; 
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
@@ -28,6 +27,13 @@ export default function Home() {
   useEffect(() => {
     const checkUser = async () => {
       const { data, error } = await supabase.auth.getUser();
+      
+      // AQUI ESTÁ A CORREÇÃO:
+      // Agora estamos "usando" a variável 'error', então o linter ficará feliz.
+      if (error) {
+        console.error("Erro ao verificar a sessão do usuário:", error.message);
+      }
+
       if (data?.user) {
         setUser(data.user);
         fetchVideos(data.user.id);
@@ -77,7 +83,6 @@ export default function Home() {
   }
 
   if (!user) {
-    // MUDANÇA 2: Usando o componente correto
     return <Auth />;
   }
 
