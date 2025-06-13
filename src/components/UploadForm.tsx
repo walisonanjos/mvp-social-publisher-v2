@@ -43,10 +43,14 @@ export default function UploadForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file || !scheduleDate || !scheduleTime || !title.trim()) {
-      alert('Por favor, preencha o título e selecione um arquivo, uma data e uma hora.');
+    // MUDANÇA 1: Validação das redes sociais
+    const isAnyTargetSelected = Object.values(socialTargets).some(target => target === true);
+
+    if (!file || !scheduleDate || !scheduleTime || !title.trim() || !isAnyTargetSelected) {
+      alert('Por favor, preencha todos os campos, incluindo pelo menos uma rede social.');
       return;
     }
+
     setIsLoading(true);
     setMessage('');
 
@@ -109,6 +113,7 @@ export default function UploadForm() {
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
       
+      {/* ... (código do Título, Descrição, etc. permanece igual) ... */}
       <div>
         <label className="block text-sm font-medium text-gray-300">Vídeo</label>
         <div className="mt-1">
@@ -146,7 +151,6 @@ export default function UploadForm() {
         />
       </div>
       
-      {/* Container para Data e Hora */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-300">Data do Agendamento</label>
@@ -157,6 +161,8 @@ export default function UploadForm() {
             onChange={(e) => setScheduleDate(e.target.value)} 
             required
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+            // MUDANÇA 2: Adicionando o onClick de volta
+            onClick={(e) => (e.target as HTMLInputElement).showPicker()}
           />
         </div>
         <div>
@@ -176,7 +182,6 @@ export default function UploadForm() {
         </div>
       </div>
       
-      {/* Container para as Redes Sociais */}
       <div>
         <label className="block text-sm font-medium text-gray-300">Postar em:</label>
         <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-4">
