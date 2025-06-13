@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react'; // Adicionado useEffect
+import { useState, useRef, useEffect } from 'react';
 import { createClient } from '../lib/supabaseClient';
 
 const initialTargets = {
@@ -26,7 +26,6 @@ export default function UploadForm() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // MUDANÇA 1: Este 'useEffect' limpa a mensagem quando o usuário começa a editar o formulário
   useEffect(() => {
     if (message) {
       setMessage(null);
@@ -53,8 +52,6 @@ export default function UploadForm() {
     e.preventDefault();
     
     const isAnyTargetSelected = Object.values(socialTargets).some(target => target === true);
-
-    // MUDANÇA 2: Substituindo o alert() pela nossa mensagem de erro estilizada
     if (!file || !scheduleDate || !scheduleTime || !title.trim() || !isAnyTargetSelected) {
       setMessage({ type: 'error', text: 'Por favor, preencha todos os campos, incluindo pelo menos uma rede social.' });
       return;
@@ -110,14 +107,14 @@ export default function UploadForm() {
     } catch (error) {
       console.error('Erro no processo de agendamento:', error);
       const errorMessage = (error as Error).message;
+      // MUDANÇA 1: Removido o prefixo "Erro: " da mensagem
       if (errorMessage.includes('unique_user_schedule')) {
-          setMessage({ type: 'error', text: 'Erro: Você já possui um agendamento para este mesmo dia e horário.' });
+          setMessage({ type: 'error', text: 'Você já possui um agendamento para este mesmo dia e horário.' });
       } else {
-          setMessage({ type: 'error', text: 'Ocorreu um erro: ' + errorMessage });
+          setMessage({ type: 'error', text: 'Ocorreu um erro inesperado. Por favor, tente novamente.' });
       }
     } finally {
       setIsLoading(false);
-      // MUDANÇA 3: O setTimeout foi removido daqui para a mensagem persistir.
     }
   };
 
@@ -222,7 +219,8 @@ export default function UploadForm() {
         <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
           message.type === 'success' 
             ? 'bg-green-900/50 text-green-300' 
-            : 'bg-red-900/50 text-red-300'
+            // MUDANÇA 2: Cor do texto de erro alterada para branco
+            : 'bg-red-900/50 text-white' 
         }`}>
           {message.text}
         </div>
