@@ -1,8 +1,8 @@
 // src/components/VideoList.tsx
 
-import React, { useState, useEffect } from 'react'; // Adicionado useState e useEffect
+import React, { useState, useEffect } from 'react';
 import { Video } from '../app/page';
-import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react'; // Adicionado ChevronDown
+import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
 
 interface VideoListProps {
   groupedVideos: { [key: string]: Video[] };
@@ -28,7 +28,6 @@ const SocialIcon = ({ platform }: { platform: string }) => {
 };
 
 const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
-  // MUDANÇA 1: Estado para controlar os grupos abertos/fechados
   const [openDates, setOpenDates] = useState<Record<string, boolean>>({});
 
   const formatTime = (dateString: string) => {
@@ -36,28 +35,29 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('pt-BR', { timeStyle: 'short' }).format(date);
   };
+
+  // MUDANÇA: Nova função para formatar o título da data
+  const formatDateKey = (dateKey: string) => {
+    const date = new Date(dateKey + 'T12:00:00'); // Adiciona um horário para evitar problemas de fuso
+    return new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'full',
+    }).format(date);
+  };
   
-  const sortedDates = Object.keys(groupedVideos).sort((a, b) => {
-    // Convertendo a data de '13 de junho de 2025' para um objeto Date para ordenar
-    const dateA = new Date(a.split(' de ')[2], new Date(Date.parse(a.split(' de ')[1] +' 1, 2012')).getMonth(), a.split(' de ')[0]);
-    const dateB = new Date(b.split(' de ')[2], new Date(Date.parse(b.split(' de ')[1] +' 1, 2012')).getMonth(), b.split(' de ')[0]);
-    return dateA.getTime() - dateB.getTime();
-  });
+  // MUDANÇA: Ordenação agora é um simples sort de strings 'AAAA-MM-DD'
+  const sortedDateKeys = Object.keys(groupedVideos).sort();
 
-  // MUDANÇA 2: useEffect para abrir o primeiro grupo por padrão
   useEffect(() => {
-    if (sortedDates.length > 0) {
-      setOpenDates(prev => ({ ...prev, [sortedDates[0]]: true }));
+    if (sortedDateKeys.length > 0) {
+      setOpenDates(prev => ({ [sortedDateKeys[0]]: true, ...prev }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(sortedDates)]); // Roda quando as datas mudam
+  }, [JSON.stringify(sortedDateKeys)]);
 
-  // MUDANÇA 3: Função para abrir/fechar um grupo
   const toggleDateGroup = (date: string) => {
     setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
   };
 
-  if (sortedDates.length === 0) {
+  if (sortedDateKeys.length === 0) {
     return (
       <div className="mt-10 rounded-lg border border-dashed border-gray-700 bg-gray-800/50 p-12 text-center">
         <h3 className="text-lg font-medium text-white">Nenhum agendamento por aqui</h3>
@@ -71,19 +71,17 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
       <h2 className="text-2xl font-bold tracking-tight text-white mb-6">
         Meus Agendamentos
       </h2>
-      {sortedDates.map(date => {
-        // MUDANÇA 4: Verifica se o grupo atual está aberto
-        const isOpen = openDates[date] || false;
+      {sortedDateKeys.map(dateKey => {
+        const isOpen = openDates[dateKey] || false;
         
         return (
-          <div key={date} className="bg-gray-800/50 rounded-lg border border-gray-700/50">
-            {/* MUDANÇA 5: O título da data agora é um botão para abrir/fechar */}
+          <div key={dateKey} className="bg-gray-800/50 rounded-lg border border-gray-700/50">
             <button
-              onClick={() => toggleDateGroup(date)}
+              onClick={() => toggleDateGroup(dateKey)}
               className="flex justify-between items-center w-full p-4 text-left"
             >
-              <h3 className="text-lg font-semibold text-teal-400">
-                {date}
+              <h3 className="text-lg font-semibold text-teal-400 capitalize">
+                {formatDateKey(dateKey)}
               </h3>
               <ChevronDown
                 size={20}
@@ -91,16 +89,15 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
               />
             </button>
             
-            {/* MUDANÇA 6: O grid de vídeos só aparece se o grupo estiver aberto */}
             {isOpen && (
               <div className="p-4 pt-0">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {groupedVideos[date].map((video) => (
+                  {groupedVideos[dateKey].map((video) => (
                     <div
                       key={video.id}
                       className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-lg"
                     >
-                      <button onClick={() => onDelete(video.id)} /* ... (botão de deletar continua igual) ... */ className="absolute top-2 right-2 z-10 p-1.5 bg-red-600/50 hover:bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir agendamento">
+                      <button onClick={() => onDelete(video.id)} /* ... (botão de deletar) ... */ className="absolute top-2 right-2 z-10 p-1.5 bg-red-600/50 hover:bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir agendamento">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                       <div className="aspect-w-9 aspect-h-16 bg-gray-700 flex items-center justify-center">

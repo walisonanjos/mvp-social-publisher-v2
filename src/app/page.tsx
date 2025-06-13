@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react"; // Adicionado useMemo
+import { useEffect, useState, useMemo } from "react";
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
@@ -34,26 +34,21 @@ export default function Home() {
     );
   };
 
-  // MUDANÇA PRINCIPAL: Agrupando os vídeos por dia
+  // MUDANÇA: Usando uma chave de data 'AAAA-MM-DD' que é naturalmente ordenável
   const groupedVideos = useMemo(() => {
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
-      const date = new Date(video.scheduled_at).toLocaleDateString('pt-BR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-      if (!groups[date]) {
-        groups[date] = [];
+      const dateKey = new Date(video.scheduled_at).toISOString().split('T')[0];
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
       }
-      groups[date].push(video);
+      groups[dateKey].push(video);
     });
     return groups;
   }, [videos]);
 
 
   useEffect(() => {
-    // ... (nenhuma mudança dentro do useEffect, ele permanece igual)
     const setupPage = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -148,7 +143,6 @@ export default function Home() {
       <main className="container mx-auto p-4 md:p-8">
         <UploadForm />
         <hr className="my-8 border-gray-700" />
-        {/* Passando os vídeos agrupados e a função de deletar */}
         <VideoList groupedVideos={groupedVideos} onDelete={handleDeleteVideo} />
       </main>
     </div>
