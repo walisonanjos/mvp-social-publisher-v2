@@ -23,7 +23,8 @@ export default function UploadForm() {
   const [scheduleTime, setScheduleTime] = useState('');
   const [socialTargets, setSocialTargets] = useState(initialTargets);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  // MUDANÇA: O estado da mensagem agora guarda o tipo (sucesso ou erro)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
@@ -43,16 +44,14 @@ export default function UploadForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // MUDANÇA 1: Validação das redes sociais
     const isAnyTargetSelected = Object.values(socialTargets).some(target => target === true);
-
     if (!file || !scheduleDate || !scheduleTime || !title.trim() || !isAnyTargetSelected) {
       alert('Por favor, preencha todos os campos, incluindo pelo menos uma rede social.');
       return;
     }
-
+    
     setIsLoading(true);
-    setMessage('');
+    setMessage(null);
 
     const scheduled_at = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
     
@@ -77,6 +76,7 @@ export default function UploadForm() {
           title: title,
           description: description,
           scheduled_at: scheduled_at,
+          is_posted: false, // Definindo o status inicial
           target_instagram: socialTargets.instagram,
           target_facebook: socialTargets.facebook,
           target_youtube: socialTargets.youtube,
@@ -85,18 +85,9 @@ export default function UploadForm() {
         }]);
       if (supabaseError) throw supabaseError;
 
-      setMessage('Sucesso! Seu vídeo foi agendado e aparecerá na lista.');
-
-    } catch (error) {
-      console.error('Erro no processo de agendamento:', error);
-      const errorMessage = (error as Error).message;
-      if (errorMessage.includes('unique_user_schedule')) {
-          setMessage('Erro: Você já possui um agendamento para este mesmo dia e horário.');
-      } else {
-          setMessage('Ocorreu um erro: ' + errorMessage);
-      }
-    } finally {
-      setIsLoading(false);
+      setMessage({ type: 'success', text: 'Sucesso! Seu vídeo foi agendado.' });
+      
+      // MUDANÇA: Limpando o formulário apenas em caso de sucesso
       setFile(null);
       setTitle('');
       setDescription('');
@@ -106,14 +97,25 @@ export default function UploadForm() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      setTimeout(() => setMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Erro no processo de agendamento:', error);
+      const errorMessage = (error as Error).message;
+      if (errorMessage.includes('unique_user_schedule')) {
+          setMessage({ type: 'error', text: 'Erro: Você já possui um agendamento para este mesmo dia e horário.' });
+      } else {
+          setMessage({ type: 'error', text: 'Ocorreu um erro: ' + errorMessage });
+      }
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage(null), 8000); // A mensagem some após 8 segundos
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
       
-      {/* ... (código do Título, Descrição, etc. permanece igual) ... */}
+      {/* ... (código dos inputs permanece igual) ... */}
       <div>
         <label className="block text-sm font-medium text-gray-300">Vídeo</label>
         <div className="mt-1">
@@ -161,7 +163,6 @@ export default function UploadForm() {
             onChange={(e) => setScheduleDate(e.target.value)} 
             required
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-            // MUDANÇA 2: Adicionando o onClick de volta
             onClick={(e) => (e.target as HTMLInputElement).showPicker()}
           />
         </div>
@@ -202,12 +203,22 @@ export default function UploadForm() {
       
       <button 
         type="submit"
-        disabled={isLoading || !file}
+        disabled={isLoading}
         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-teal-500 disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
         {isLoading ? 'Agendando...' : 'Agendar Post'}
       </button>
-      {message && <p className='text-center text-sm mt-4 text-gray-400'>{message}</p>}
+
+      {/* MUDANÇA: A mensagem agora tem estilo condicional (verde para sucesso, vermelho para erro) */}
+      {message && (
+        <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
+          message.type === 'success' 
+            ? 'bg-green-900/50 text-green-300' 
+            : 'bg-red-900/50 text-red-300'
+        }`}>
+          {message.text}
+        </div>
+      )}
     </form>
   );
 }
