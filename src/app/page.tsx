@@ -22,55 +22,59 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Otimização: Vamos remover o 'refreshKey' e usar Realtime (ver abaixo)
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      
-      if (error) {
-        console.error("Erro ao verificar a sessão do usuário:", error.message);
-      }
+    const checkUserAndFetchData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
 
-      if (data?.user) {
-        setUser(data.user);
-        fetchVideos(data.user.id);
+      if (user) {
+        const { data: initialVideos, error } = await supabase
+          .from("videos")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("scheduled_at", { ascending: true });
+
+        if (error) {
+          console.error("Erro ao buscar vídeos:", error);
+        } else {
+          setVideos(initialVideos || []);
+        }
       }
       setLoading(false);
     };
 
-    const fetchVideos = async (userId: string) => {
-      const { data, error } = await supabase
-        .from("videos")
-        .select("*")
-        .eq("user_id", userId)
-        .order("scheduled_at", { ascending: true });
+    checkUserAndFetchData();
 
-      if (error) {
-        console.error("Erro ao buscar vídeos:", error);
-      } else {
-        setVideos(data as Video[]);
-      }
-    };
-
-    checkUser();
+    // MELHORIA COM SUPABASE REALTIME:
+    // Isso escuta o banco de dados e atualiza a tela em tempo real!
+    const channel = supabase.channel('videos_changes')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'videos' }, 
+        (payload) => {
+          // Quando um novo vídeo é inserido, adiciona ele à nossa lista local
+          setVideos((currentVideos) => [payload.new as Video, ...currentVideos]);
+        }
+      )
+      .subscribe();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          fetchVideos(currentUser.id);
-        } else {
+        setUser(session?.user ?? null);
+        if (!session?.user) {
           setVideos([]);
         }
       }
     );
 
     return () => {
+      supabase.removeChannel(channel);
       authListener.subscription.unsubscribe();
     };
-  }, [supabase, refreshKey]);
+  }, [supabase]);
+
 
   if (loading) {
     return (
@@ -85,30 +89,33 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-white">
-          Olá, {user.email?.split("@")[0]}
-        </h1>
-        <button
-          onClick={async () => await supabase.auth.signOut()}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-        >
-          Sair
-        </button>
-      </div>
+    // MUDANÇA DE ESTILO: Fundo mais escuro para a página toda
+    <div className="bg-gray-900 min-h-screen text-white">
+      <header className="bg-gray-800/80 backdrop-blur-sm p-4 border-b border-gray-700">
+        <div className="container mx-auto flex justify-between items-center">
+          {/* MUDANÇA: Título da Plataforma Adicionado */}
+          <h1 className="text-xl font-bold text-teal-400">
+            Social Publisher
+          </h1>
+          <div className="flex items-center gap-4">
+            {/* MUDANÇA: Cor do nome de usuário ajustada */}
+            <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>
+            <button
+              onClick={async () => await supabase.auth.signOut()}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {/* AQUI ESTÁ A CORREÇÃO:
-        Removemos a propriedade 'user={user}', pois o componente não a utiliza.
-      */}
-      <UploadForm
-        onUploadSuccess={() => setRefreshKey(refreshKey + 1)}
-      />
-
-      <hr className="my-8 border-gray-700" />
-      
-      <VideoList videos={videos} />
-
+      <main className="container mx-auto p-4 md:p-8">
+        {/* MUDANÇA: 'onUploadSuccess' removido, pois o Realtime cuida disso */}
+        <UploadForm />
+        <hr className="my-8 border-gray-700" />
+        <VideoList videos={videos} />
+      </main>
     </div>
   );
 }
