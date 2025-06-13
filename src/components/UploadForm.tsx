@@ -3,10 +3,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { createClient } from '../lib/supabaseClient'; // Usando caminho relativo para segurança
+import { createClient } from '../lib/supabaseClient';
 
-// MUDANÇA: Removida a prop 'onUploadSuccess', não é mais necessária
-type UploadFormProps = {};
+// MUDANÇA 1: A linha abaixo foi completamente REMOVIDA
+// type UploadFormProps = {}; 
 
 const initialTargets = {
   instagram: false,
@@ -18,8 +18,8 @@ const initialTargets = {
 
 const timeSlots = ['09:00', '11:00', '13:00', '15:00', '17:00'];
 
-// MUDANÇA: Removida a prop 'onUploadSuccess' dos parâmetros
-export default function UploadForm({}: UploadFormProps) {
+// MUDANÇA 2: Removidos os parâmetros da função, pois não há props
+export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -32,7 +32,6 @@ export default function UploadForm({}: UploadFormProps) {
 
   const supabase = createClient();
   const UPLOAD_PRESET = 'zupltfoo';
-  // Use uma variável de ambiente para o nome do cloud
   const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; 
   const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
 
@@ -46,7 +45,7 @@ export default function UploadForm({}: UploadFormProps) {
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevenir o comportamento padrão do formulário
+    e.preventDefault();
     
     if (!file || !scheduleDate || !scheduleTime || !title.trim()) {
       alert('Por favor, preencha o título e selecione um arquivo, uma data e uma hora.');
@@ -87,7 +86,6 @@ export default function UploadForm({}: UploadFormProps) {
       if (supabaseError) throw supabaseError;
 
       setMessage('Sucesso! Seu vídeo foi agendado e aparecerá na lista.');
-      // onUploadSuccess não é mais chamado aqui
 
     } catch (error) {
       console.error('Erro no processo de agendamento:', error);
@@ -108,13 +106,11 @@ export default function UploadForm({}: UploadFormProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      // A mensagem de sucesso/erro sumirá após 5 segundos
       setTimeout(() => setMessage(''), 5000);
     }
   };
 
   return (
-    // Envolvendo em uma tag form para melhor semântica
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
       
       <div>
@@ -138,7 +134,7 @@ export default function UploadForm({}: UploadFormProps) {
           type="text" 
           value={title} 
           onChange={(e) => setTitle(e.target.value)} 
-            required // Adicionado required aqui também
+            required
             className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
         />
       </div>
