@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react'; // Adicionado useEffect
 import { createClient } from '../lib/supabaseClient';
 
 const initialTargets = {
@@ -23,9 +23,17 @@ export default function UploadForm() {
   const [scheduleTime, setScheduleTime] = useState('');
   const [socialTargets, setSocialTargets] = useState(initialTargets);
   const [isLoading, setIsLoading] = useState(false);
-  // MUDANÇA: O estado da mensagem agora guarda o tipo (sucesso ou erro)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // MUDANÇA 1: Este 'useEffect' limpa a mensagem quando o usuário começa a editar o formulário
+  useEffect(() => {
+    if (message) {
+      setMessage(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, file, scheduleDate, scheduleTime, socialTargets]);
+
 
   const supabase = createClient();
   const UPLOAD_PRESET = 'zupltfoo';
@@ -45,8 +53,10 @@ export default function UploadForm() {
     e.preventDefault();
     
     const isAnyTargetSelected = Object.values(socialTargets).some(target => target === true);
+
+    // MUDANÇA 2: Substituindo o alert() pela nossa mensagem de erro estilizada
     if (!file || !scheduleDate || !scheduleTime || !title.trim() || !isAnyTargetSelected) {
-      alert('Por favor, preencha todos os campos, incluindo pelo menos uma rede social.');
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos, incluindo pelo menos uma rede social.' });
       return;
     }
     
@@ -76,7 +86,7 @@ export default function UploadForm() {
           title: title,
           description: description,
           scheduled_at: scheduled_at,
-          is_posted: false, // Definindo o status inicial
+          is_posted: false,
           target_instagram: socialTargets.instagram,
           target_facebook: socialTargets.facebook,
           target_youtube: socialTargets.youtube,
@@ -87,7 +97,6 @@ export default function UploadForm() {
 
       setMessage({ type: 'success', text: 'Sucesso! Seu vídeo foi agendado.' });
       
-      // MUDANÇA: Limpando o formulário apenas em caso de sucesso
       setFile(null);
       setTitle('');
       setDescription('');
@@ -108,14 +117,14 @@ export default function UploadForm() {
       }
     } finally {
       setIsLoading(false);
-      setTimeout(() => setMessage(null), 8000); // A mensagem some após 8 segundos
+      // MUDANÇA 3: O setTimeout foi removido daqui para a mensagem persistir.
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
       
-      {/* ... (código dos inputs permanece igual) ... */}
+      {/* ... (código dos inputs permanece igual, não precisa mexer) ... */}
       <div>
         <label className="block text-sm font-medium text-gray-300">Vídeo</label>
         <div className="mt-1">
@@ -209,7 +218,6 @@ export default function UploadForm() {
         {isLoading ? 'Agendando...' : 'Agendar Post'}
       </button>
 
-      {/* MUDANÇA: A mensagem agora tem estilo condicional (verde para sucesso, vermelho para erro) */}
       {message && (
         <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
           message.type === 'success' 
