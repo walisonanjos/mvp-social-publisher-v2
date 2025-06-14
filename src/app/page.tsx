@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react"; // Adicionado useCallback
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
@@ -46,7 +46,6 @@ export default function Home() {
     return groups;
   }, [videos]);
 
-  // MUDANÇA: 'fetchVideos' agora usa 'useCallback' para otimização
   const fetchVideos = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("videos")
@@ -91,28 +90,25 @@ export default function Home() {
     };
   }, [supabase, fetchVideos]);
   
-  // MUDANÇA: 'useEffect' separado apenas para o Realtime
   useEffect(() => {
-    // Só cria o canal de Realtime se tiver um usuário logado
     if (!user) return;
 
+    // MUDANÇA: Removido o 'filter' das assinaturas para garantir a entrega dos eventos.
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
       .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
+        { event: 'INSERT', schema: 'public', table: 'videos' },
         (payload) => {
           setVideos((currentVideos) => sortVideos([...currentVideos, payload.new as Video]));
         }
       )
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'videos' },
         (payload) => {
-          console.log('Sinal de UPDATE recebido!', payload);
-          // A forma mais segura é re-buscar todos os dados para garantir consistência
           fetchVideos(user.id);
         }
       )
       .on('postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
+        { event: 'DELETE', schema: 'public', table: 'videos' },
         (payload) => {
           setVideos((currentVideos) => currentVideos.filter(v => v.id !== payload.old.id));
         }
@@ -133,8 +129,7 @@ export default function Home() {
       alert('Não foi possível excluir o agendamento. Tente novamente.');
     }
   };
-
-  // ... (o resto do código JSX permanece igual) ...
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
