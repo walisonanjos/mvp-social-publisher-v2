@@ -34,7 +34,6 @@ export default function Home() {
     );
   };
 
-  // MUDANÇA: Usando uma chave de data 'AAAA-MM-DD' que é naturalmente ordenável
   const groupedVideos = useMemo(() => {
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
@@ -76,6 +75,17 @@ export default function Home() {
         { event: 'INSERT', schema: 'public', table: 'videos' },
         (payload) => {
           setVideos((currentVideos) => sortVideos([...currentVideos, payload.new as Video]));
+        }
+      )
+      // MUDANÇA: Adicionado o 'listener' para o evento de UPDATE
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'videos' },
+        (payload) => {
+          setVideos(currentVideos => 
+            currentVideos.map(video => 
+              video.id === payload.new.id ? { ...video, ...payload.new as Video } : video
+            )
+          );
         }
       )
       .on('postgres_changes',
