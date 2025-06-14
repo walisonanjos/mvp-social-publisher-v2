@@ -93,7 +93,6 @@ export default function Home() {
   useEffect(() => {
     if (!user) return;
 
-    // MUDANÇA: Removido o 'filter' das assinaturas para garantir a entrega dos eventos.
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'videos' },
@@ -103,8 +102,12 @@ export default function Home() {
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'videos' },
-        (payload) => {
-          fetchVideos(user.id);
+        // MUDANÇA AQUI: Renomeando 'payload' para '_payload'
+        (_payload) => {
+          console.log('Sinal de UPDATE recebido! Buscando lista de vídeos atualizada...');
+          if (user) {
+            fetchVideos(user.id);
+          }
         }
       )
       .on('postgres_changes',
@@ -129,7 +132,7 @@ export default function Home() {
       alert('Não foi possível excluir o agendamento. Tente novamente.');
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">

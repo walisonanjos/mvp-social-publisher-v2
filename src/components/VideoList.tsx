@@ -1,6 +1,6 @@
 // src/components/VideoList.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Adicionado useMemo
 import { Video } from '../app/page';
 import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
 
@@ -36,22 +36,21 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
     return new Intl.DateTimeFormat('pt-BR', { timeStyle: 'short' }).format(date);
   };
 
-  // MUDANÇA: Nova função para formatar o título da data
   const formatDateKey = (dateKey: string) => {
-    const date = new Date(dateKey + 'T12:00:00'); // Adiciona um horário para evitar problemas de fuso
-    return new Intl.DateTimeFormat('pt-BR', {
-      dateStyle: 'full',
-    }).format(date);
+    const date = new Date(dateKey + 'T12:00:00');
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(date);
   };
   
-  // MUDANÇA: Ordenação agora é um simples sort de strings 'AAAA-MM-DD'
   const sortedDateKeys = Object.keys(groupedVideos).sort();
 
+  // MUDANÇA: Usando useMemo e ajustando o useEffect para seguir as regras do Linter
+  const firstDateKey = useMemo(() => sortedDateKeys.length > 0 ? sortedDateKeys[0] : null, [sortedDateKeys]);
+
   useEffect(() => {
-    if (sortedDateKeys.length > 0) {
-      setOpenDates(prev => ({ [sortedDateKeys[0]]: true, ...prev }));
+    if (firstDateKey) {
+      setOpenDates(prev => ({ ...prev, [firstDateKey]: true }));
     }
-  }, [JSON.stringify(sortedDateKeys)]);
+  }, [firstDateKey]);
 
   const toggleDateGroup = (date: string) => {
     setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
@@ -97,7 +96,7 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
                       key={video.id}
                       className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-lg"
                     >
-                      <button onClick={() => onDelete(video.id)} /* ... (botão de deletar) ... */ className="absolute top-2 right-2 z-10 p-1.5 bg-red-600/50 hover:bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir agendamento">
+                      <button onClick={() => onDelete(video.id)} className="absolute top-2 right-2 z-10 p-1.5 bg-red-600/50 hover:bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir agendamento">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                       <div className="aspect-w-9 aspect-h-16 bg-gray-700 flex items-center justify-center">
