@@ -1,0 +1,19 @@
+# .github/workflows/scheduler.yml
+
+name: Scheduled Post Checker
+
+on:
+  schedule:
+    # Roda a cada 15 minutos
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite rodar manualmente pela interface do GitHub
+
+jobs:
+  invoke-scheduler-function:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          curl -i -X POST "${{ secrets.SUPABASE_FUNCTION_URL }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Content-Type: application/json"
