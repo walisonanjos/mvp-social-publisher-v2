@@ -102,8 +102,8 @@ export default function Home() {
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'videos' },
-        // MUDANÇA AQUI: Renomeando 'payload' para '_payload'
-        (_payload) => {
+        // MUDANÇA FINAL: Trocado '_payload' por '()'
+        () => {
           console.log('Sinal de UPDATE recebido! Buscando lista de vídeos atualizada...');
           if (user) {
             fetchVideos(user.id);
