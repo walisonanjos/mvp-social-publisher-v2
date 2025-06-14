@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react"; // Adicionado useCallback
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
@@ -46,69 +46,84 @@ export default function Home() {
     return groups;
   }, [videos]);
 
+  // MUDANÇA: 'fetchVideos' agora usa 'useCallback' para otimização
+  const fetchVideos = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("user_id", userId)
+      .order("scheduled_at", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao buscar vídeos:", error);
+    } else {
+      setVideos(data || []);
+    }
+  }, [supabase]);
+
 
   useEffect(() => {
     const setupPage = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-
       if (user) {
-        const { data: initialVideos, error } = await supabase
-          .from("videos")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("scheduled_at", { ascending: true });
-
-        if (error) {
-          console.error("Erro ao buscar vídeos:", error);
-        } else {
-          setVideos(initialVideos || []);
-        }
+        await fetchVideos(user.id);
       }
       setLoading(false);
     };
 
     setupPage();
 
-    const channel = supabase.channel('videos_realtime')
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+            fetchVideos(currentUser.id);
+        } else {
+            setVideos([]);
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase, fetchVideos]);
+  
+  // MUDANÇA: 'useEffect' separado apenas para o Realtime
+  useEffect(() => {
+    // Só cria o canal de Realtime se tiver um usuário logado
+    if (!user) return;
+
+    const channel = supabase.channel(`videos_realtime_user_${user.id}`)
       .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'videos' },
+        { event: 'INSERT', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
         (payload) => {
           setVideos((currentVideos) => sortVideos([...currentVideos, payload.new as Video]));
         }
       )
-      // MUDANÇA: Adicionado o 'listener' para o evento de UPDATE
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'videos' },
+        { event: 'UPDATE', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
         (payload) => {
-          setVideos(currentVideos => 
-            currentVideos.map(video => 
-              video.id === payload.new.id ? { ...video, ...payload.new as Video } : video
-            )
-          );
+          console.log('Sinal de UPDATE recebido!', payload);
+          // A forma mais segura é re-buscar todos os dados para garantir consistência
+          fetchVideos(user.id);
         }
       )
       .on('postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'videos' },
+        { event: 'DELETE', schema: 'public', table: 'videos', filter: `user_id=eq.${user.id}` },
         (payload) => {
           setVideos((currentVideos) => currentVideos.filter(v => v.id !== payload.old.id));
         }
       )
       .subscribe();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (!currentUser) setVideos([]);
+      
+      return () => {
+        supabase.removeChannel(channel);
       }
-    );
 
-    return () => {
-      supabase.removeChannel(channel);
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
+  }, [user, supabase, fetchVideos]);
   
   const handleDeleteVideo = async (videoId: string) => {
     setVideos(currentVideos => currentVideos.filter(v => v.id !== videoId));
@@ -119,6 +134,7 @@ export default function Home() {
     }
   };
 
+  // ... (o resto do código JSX permanece igual) ...
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
