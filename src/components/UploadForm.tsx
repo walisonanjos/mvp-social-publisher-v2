@@ -92,7 +92,9 @@ export default function UploadForm() {
         }]);
       if (supabaseError) throw supabaseError;
 
-      setMessage({ type: 'success', text: 'Sucesso! Seu vídeo foi agendado.' });
+      // MUDANÇA: Mensagem de sucesso agora é mais detalhada.
+      const friendlyDate = new Date(scheduleDate + 'T12:00:00').toLocaleDateString('pt-BR');
+      setMessage({ type: 'success', text: `Agendamento realizado para ${friendlyDate} às ${scheduleTime}.` });
       
       setFile(null);
       setTitle('');
@@ -107,7 +109,6 @@ export default function UploadForm() {
     } catch (error) {
       console.error('Erro no processo de agendamento:', error);
       const errorMessage = (error as Error).message;
-      // MUDANÇA 1: Removido o prefixo "Erro: " da mensagem
       if (errorMessage.includes('unique_user_schedule')) {
           setMessage({ type: 'error', text: 'Você já possui um agendamento para este mesmo dia e horário.' });
       } else {
@@ -121,7 +122,6 @@ export default function UploadForm() {
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
       
-      {/* ... (código dos inputs permanece igual, não precisa mexer) ... */}
       <div>
         <label className="block text-sm font-medium text-gray-300">Vídeo</label>
         <div className="mt-1">
@@ -219,7 +219,6 @@ export default function UploadForm() {
         <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
           message.type === 'success' 
             ? 'bg-green-900/50 text-green-300' 
-            // MUDANÇA 2: Cor do texto de erro alterada para branco
             : 'bg-red-900/50 text-white' 
         }`}>
           {message.text}
