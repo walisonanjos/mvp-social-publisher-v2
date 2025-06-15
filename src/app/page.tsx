@@ -88,19 +88,25 @@ export default function Home() {
     if (!user) return;
 
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
-      // MUDANÇA: Agora o INSERT também re-busca a lista inteira, como o UPDATE.
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'videos' },
-        (payload) => {
-          console.log('Sinal de INSERT recebido! Buscando lista de vídeos atualizada...', payload);
-          fetchVideos(user.id);
+        () => {
+          console.log('Sinal de INSERT recebido! Aguardando 1s para consistência de dados...');
+          // MUDANÇA: Adicionado um delay de 1 segundo antes de buscar
+          setTimeout(() => {
+            if (user) {
+              fetchVideos(user.id);
+            }
+          }, 1000);
         }
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'videos' },
         () => {
           console.log('Sinal de UPDATE recebido! Buscando lista de vídeos atualizada...');
-          fetchVideos(user.id);
+          if (user) {
+            fetchVideos(user.id);
+          }
         }
       )
       .on('postgres_changes',
