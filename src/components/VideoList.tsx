@@ -1,6 +1,6 @@
 // src/components/VideoList.tsx
 
-import React, { useState, useEffect, useMemo } from 'react'; // Adicionado useMemo
+import React, { useState, useEffect, useMemo } from 'react';
 import { Video } from '../app/page';
 import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
 
@@ -36,21 +36,31 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
     return new Intl.DateTimeFormat('pt-BR', { timeStyle: 'short' }).format(date);
   };
 
-  const formatDateKey = (dateKey: string) => {
+  const formatDateKeyForTitle = (dateKey: string) => {
     const date = new Date(dateKey + 'T12:00:00');
     return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(date);
   };
   
-  const sortedDateKeys = Object.keys(groupedVideos).sort();
+  const sortedDateKeys = Object.keys(groupedVideos).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-  // MUDANÇA: Usando useMemo e ajustando o useEffect para seguir as regras do Linter
-  const firstDateKey = useMemo(() => sortedDateKeys.length > 0 ? sortedDateKeys[0] : null, [sortedDateKeys]);
-
+  // MUDANÇA: Lógica para abrir o dia de hoje por padrão
   useEffect(() => {
-    if (firstDateKey) {
-      setOpenDates(prev => ({ ...prev, [firstDateKey]: true }));
+    if (sortedDateKeys.length > 0) {
+      const today = new Date();
+      // Formata a data de hoje no mesmo padrão das chaves do grupo (Ex: '2025-06-15')
+      const todayKey = today.toISOString().split('T')[0];
+      
+      let defaultOpenKey = sortedDateKeys[0]; // Padrão: abrir o primeiro dia da lista
+      
+      // Se houver agendamentos para hoje, abre o grupo de hoje em vez do primeiro
+      if (groupedVideos[todayKey]) {
+        defaultOpenKey = todayKey;
+      }
+      
+      setOpenDates(prev => ({ [defaultOpenKey]: true, ...prev }));
     }
-  }, [firstDateKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(groupedVideos)]); // Roda quando os dados mudam
 
   const toggleDateGroup = (date: string) => {
     setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
@@ -80,7 +90,7 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
               className="flex justify-between items-center w-full p-4 text-left"
             >
               <h3 className="text-lg font-semibold text-teal-400 capitalize">
-                {formatDateKey(dateKey)}
+                {formatDateKeyForTitle(dateKey)}
               </h3>
               <ChevronDown
                 size={20}
