@@ -28,12 +28,6 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const sortVideos = (videoArray: Video[]) => {
-    return videoArray.sort(
-      (a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
-    );
-  };
-
   const groupedVideos = useMemo(() => {
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
@@ -94,20 +88,19 @@ export default function Home() {
     if (!user) return;
 
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
+      // MUDANÇA: Agora o INSERT também re-busca a lista inteira, como o UPDATE.
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'videos' },
         (payload) => {
-          setVideos((currentVideos) => sortVideos([...currentVideos, payload.new as Video]));
+          console.log('Sinal de INSERT recebido! Buscando lista de vídeos atualizada...', payload);
+          fetchVideos(user.id);
         }
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'videos' },
-        // MUDANÇA FINAL: Trocado '_payload' por '()'
         () => {
           console.log('Sinal de UPDATE recebido! Buscando lista de vídeos atualizada...');
-          if (user) {
-            fetchVideos(user.id);
-          }
+          fetchVideos(user.id);
         }
       )
       .on('postgres_changes',
@@ -132,7 +125,7 @@ export default function Home() {
       alert('Não foi possível excluir o agendamento. Tente novamente.');
     }
   };
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
