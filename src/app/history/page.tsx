@@ -3,11 +3,12 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+// MUDANÇA: O import do 'Link' foi removido daqui também
 import { createClient } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import VideoList from "../../components/VideoList";
 import { Video } from "../page";
-import Navbar from "../../components/Navbar"; // Importando o novo componente
+import Navbar from "../../components/Navbar";
 
 export default function HistoryPage() {
   const supabase = createClient();
@@ -16,13 +17,15 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchHistoryVideos = useCallback(async (userId: string) => {
-    // FILTRAGEM: Busca apenas agendamentos de dias anteriores
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Define para o início do dia
+    const todayISO = today.toISOString();
+
     const { data, error } = await supabase
       .from("videos")
       .select("*")
       .eq("user_id", userId)
-      .lt('scheduled_at', today) // lt = less than
+      .lt('scheduled_at', todayISO)
       .order("scheduled_at", { ascending: false });
 
     if (error) {
@@ -32,7 +35,6 @@ export default function HistoryPage() {
     }
   }, [supabase]);
 
-  // ... (lógica de useEffect e groupedVideos permanece a mesma da versão anterior) ...
   useEffect(() => {
     const setupPage = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -57,7 +59,7 @@ export default function HistoryPage() {
     alert(`Funcionalidade de deletar do histórico ainda não implementada. ID: ${videoId}`);
   };
 
-  if (loading) { /* ... (tela de loading) ... */ return <div className="flex items-center justify-center min-h-screen bg-gray-900"><p className="text-white">Carregando Histórico...</p></div>; }
+  if (loading) { return <div className="flex items-center justify-center min-h-screen bg-gray-900"><p className="text-white">Carregando Histórico...</p></div>; }
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
@@ -66,13 +68,11 @@ export default function HistoryPage() {
           <h1 className="text-xl font-bold text-teal-400">Social Publisher</h1>
           <div className="flex items-center gap-4">
             {user && <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>}
-            {/* MUDANÇA: Link do Dashboard removido daqui */}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
-        {/* MUDANÇA: Adicionada a nova barra de navegação */}
         <Navbar />
         <div className="mt-8">
             <h2 className="text-3xl font-bold tracking-tight text-white mb-8">

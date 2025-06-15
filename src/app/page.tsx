@@ -3,15 +3,16 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import Link from 'next/link';
+// MUDANÇA: 'Link' foi removido desta linha de import
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
 import { createClient } from "../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { RefreshCw } from "lucide-react";
-import Navbar from "../components/Navbar"; // Importando o novo componente
+import Navbar from "../components/Navbar";
 
+// ... (todo o resto do arquivo permanece exatamente igual) ...
 export interface Video {
   id: string;
   title: string;
@@ -31,15 +32,16 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ... (toda a lógica de fetch, group, delete, etc., permanece igual) ...
   const fetchVideos = useCallback(async (userId: string) => {
-    // FILTRAGEM: Busca apenas agendamentos de hoje em diante
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Define para o início do dia
+    const todayISO = today.toISOString();
+
     const { data, error } = await supabase
       .from("videos")
       .select("*")
       .eq("user_id", userId)
-      .gte('scheduled_at', today) // gte = greater than or equal to
+      .gte('scheduled_at', todayISO)
       .order("scheduled_at", { ascending: true });
 
     if (error) {
@@ -48,7 +50,7 @@ export default function Home() {
       setVideos(data || []);
     }
   }, [supabase]);
-
+  
   const groupedVideos = useMemo(() => {
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
@@ -95,7 +97,7 @@ export default function Home() {
     }
   };
 
-  if (loading) { /* ... (tela de loading) ... */ return <div className="flex items-center justify-center min-h-screen bg-gray-900"><p className="text-white">Carregando...</p></div>; }
+  if (loading) { return <div className="flex items-center justify-center min-h-screen bg-gray-900"><p className="text-white">Carregando...</p></div>; }
   if (!user) { return <Auth />; }
 
   return (
@@ -105,7 +107,6 @@ export default function Home() {
           <h1 className="text-xl font-bold text-teal-400">Social Publisher</h1>
           <div className="flex items-center gap-4">
             <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>
-            {/* MUDANÇA: Link do histórico foi removido daqui */}
             <button
               onClick={async () => await supabase.auth.signOut()}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -117,14 +118,15 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
-        {/* MUDANÇA: Adicionada a nova barra de navegação */}
         <Navbar />
         <div className="mt-8">
             <UploadForm />
         </div>
         <hr className="my-8 border-gray-700" />
         <div className="flex justify-between items-center mb-6">
-            {/* ... (código do botão de atualizar) ... */}
+            <h2 className="text-2xl font-bold tracking-tight text-white">
+                Meus Agendamentos
+            </h2>
             <button onClick={() => user && fetchVideos(user.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors" title="Atualizar lista">
                 <RefreshCw size={14} /><span>Atualizar</span>
             </button>
