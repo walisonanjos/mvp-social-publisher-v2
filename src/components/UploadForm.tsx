@@ -26,8 +26,9 @@ export default function UploadForm() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // MUDANÇA: O 'useEffect' agora só limpa a mensagem se for do tipo 'error'.
   useEffect(() => {
-    if (message) {
+    if (message?.type === 'error') {
       setMessage(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,7 +93,6 @@ export default function UploadForm() {
         }]);
       if (supabaseError) throw supabaseError;
 
-      // MUDANÇA: Mensagem de sucesso agora é mais detalhada.
       const friendlyDate = new Date(scheduleDate + 'T12:00:00').toLocaleDateString('pt-BR');
       setMessage({ type: 'success', text: `Agendamento realizado para ${friendlyDate} às ${scheduleTime}.` });
       
