@@ -3,11 +3,13 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Link from 'next/link'; // Import do Link para navegação
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
 import { createClient } from "../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
+import { RefreshCw } from "lucide-react";
 
 export interface Video {
   id: string;
@@ -89,21 +91,8 @@ export default function Home() {
 
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
       .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'videos' },
-        () => {
-          console.log('Sinal de INSERT recebido! Aguardando 1s para consistência de dados...');
-          // MUDANÇA: Adicionado um delay de 1 segundo antes de buscar
-          setTimeout(() => {
-            if (user) {
-              fetchVideos(user.id);
-            }
-          }, 1000);
-        }
-      )
-      .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'videos' },
         () => {
-          console.log('Sinal de UPDATE recebido! Buscando lista de vídeos atualizada...');
           if (user) {
             fetchVideos(user.id);
           }
@@ -153,6 +142,12 @@ export default function Home() {
           </h1>
           <div className="flex items-center gap-4">
             <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>
+            
+            {/* MUDANÇA: Link para o Histórico adicionado aqui */}
+            <Link href="/history" className="text-sm font-medium text-teal-400 hover:text-teal-300">
+              Histórico
+            </Link>
+
             <button
               onClick={async () => await supabase.auth.signOut()}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -166,6 +161,21 @@ export default function Home() {
       <main className="container mx-auto p-4 md:p-8">
         <UploadForm />
         <hr className="my-8 border-gray-700" />
+        
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-white">
+                Meus Agendamentos
+            </h2>
+            <button 
+                onClick={() => user && fetchVideos(user.id)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors"
+                title="Atualizar lista"
+            >
+                <RefreshCw size={14} />
+                <span>Atualizar</span>
+            </button>
+        </div>
+
         <VideoList groupedVideos={groupedVideos} onDelete={handleDeleteVideo} />
       </main>
     </div>
