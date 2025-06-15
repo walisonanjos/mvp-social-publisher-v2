@@ -3,12 +3,12 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useRouter } from 'next/navigation'; // Importando o router para navegação
-import Link from 'next/link'; // Importando o componente Link
-import { createClient } from "../../lib/supabaseClient"; // Ajustando o caminho do import
+// MUDANÇA: O import do 'useRouter' foi removido daqui.
+import Link from 'next/link';
+import { createClient } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
-import VideoList from "../../components/VideoList"; // Ajustando o caminho do import
-import { Video } from "../page"; // Reutilizando a interface da página principal
+import VideoList from "../../components/VideoList";
+import { Video } from "../page";
 
 export default function HistoryPage() {
   const supabase = createClient();
@@ -16,14 +16,12 @@ export default function HistoryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Lógica para buscar os vídeos (por enquanto, busca todos)
   const fetchHistoryVideos = useCallback(async (userId: string) => {
-    // FUTURAMENTE: Vamos filtrar para buscar apenas vídeos do passado.
     const { data, error } = await supabase
       .from("videos")
       .select("*")
       .eq("user_id", userId)
-      .order("scheduled_at", { ascending: false }); // Ordena do mais recente para o mais antigo
+      .order("scheduled_at", { ascending: false });
 
     if (error) {
       console.error("Erro ao buscar histórico de vídeos:", error);
@@ -46,7 +44,6 @@ export default function HistoryPage() {
 
 
   const groupedVideos = useMemo(() => {
-    // Lógica de agrupamento permanece a mesma
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
       const dateKey = new Date(video.scheduled_at).toISOString().split('T')[0];
@@ -58,9 +55,7 @@ export default function HistoryPage() {
     return groups;
   }, [videos]);
 
-  // A função de deletar não será passada para o histórico por enquanto
   const handleDeleteVideo = async (videoId: string) => {
-    // Implementar lógica de exclusão no histórico se desejado no futuro
     alert(`Funcionalidade de deletar do histórico ainda não implementada. ID: ${videoId}`);
   };
 
@@ -81,7 +76,6 @@ export default function HistoryPage() {
           </h1>
           <div className="flex items-center gap-4">
             {user && <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>}
-            {/* Link para voltar ao Dashboard */}
             <Link href="/" className="text-sm font-medium text-teal-400 hover:text-teal-300">
               Dashboard
             </Link>
