@@ -1,6 +1,6 @@
 // src/components/VideoList.tsx
 
-import React, { useState, useEffect } from 'react'; // MUDANÇA: 'useMemo' foi removido daqui
+import React, { useState, useEffect } from 'react';
 import { Video } from '../app/page';
 import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
 
@@ -54,14 +54,14 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
         defaultOpenKey = todayKey;
       }
       
-      // Apenas define o estado se ele ainda não foi definido para evitar re-renderizações desnecessárias
       setOpenDates(prev => {
-        if (prev[defaultOpenKey]) return prev;
-        return { ...prev, [defaultOpenKey]: true };
+        if (Object.keys(prev).length === 0) { // Abre apenas na primeira vez
+          return { [defaultOpenKey]: true };
+        }
+        return prev;
       });
     }
   }, [sortedDateKeys, groupedVideos]);
-
 
   const toggleDateGroup = (date: string) => {
     setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
@@ -78,11 +78,9 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
 
   return (
     <div className="mt-12 space-y-4">
-      <h2 className="text-2xl font-bold tracking-tight text-white mb-6">
-        Meus Agendamentos
-      </h2>
+      {/* Removido o H2 'Meus Agendamentos' daqui para evitar duplicação, já que ele está em page.tsx */}
       {sortedDateKeys.map(dateKey => {
-        const isOpen = openDates[dateKey] || false;
+        const isOpen = openDates[dateKey] ?? false;
         
         return (
           <div key={dateKey} className="bg-gray-800/50 rounded-lg border border-gray-700/50">
@@ -91,7 +89,8 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
               className="flex justify-between items-center w-full p-4 text-left"
             >
               <h3 className="text-lg font-semibold text-teal-400 capitalize">
-                {formatDateKey(dateKey)}
+                {/* MUDANÇA: Corrigido o nome da função aqui */}
+                {formatDateKeyForTitle(dateKey)}
               </h3>
               <ChevronDown
                 size={20}
@@ -117,7 +116,7 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
                         <div className="flex justify-between items-start">
                           <h4 className="text-base font-medium text-white flex-1 pr-2">{video.title}</h4>
                           <span className={`px-2 py-1 text-xs font-semibold rounded-full ${video.is_posted ? 'bg-green-500/20 text-green-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
-                            {video.is_posted ? 'Postado' : 'Postado'}
+                            {video.is_posted ? 'Postado' : 'Agendado'}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2 mt-4">
