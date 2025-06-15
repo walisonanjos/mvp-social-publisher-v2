@@ -1,6 +1,6 @@
 // src/components/VideoList.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react'; // MUDANÇA: 'useMemo' foi removido daqui
 import { Video } from '../app/page';
 import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface VideoListProps {
 }
 
 const SocialIcon = ({ platform }: { platform: string }) => {
-  // ... (Nenhuma mudança aqui)
+  // ... (código dos ícones permanece igual) ...
   switch (platform) {
     case 'instagram':
       return <Instagram size={16} className="text-pink-500" />;
@@ -43,24 +43,25 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
   
   const sortedDateKeys = Object.keys(groupedVideos).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-  // MUDANÇA: Lógica para abrir o dia de hoje por padrão
   useEffect(() => {
     if (sortedDateKeys.length > 0) {
       const today = new Date();
-      // Formata a data de hoje no mesmo padrão das chaves do grupo (Ex: '2025-06-15')
       const todayKey = today.toISOString().split('T')[0];
       
-      let defaultOpenKey = sortedDateKeys[0]; // Padrão: abrir o primeiro dia da lista
+      let defaultOpenKey = sortedDateKeys[0]; 
       
-      // Se houver agendamentos para hoje, abre o grupo de hoje em vez do primeiro
       if (groupedVideos[todayKey]) {
         defaultOpenKey = todayKey;
       }
       
-      setOpenDates(prev => ({ [defaultOpenKey]: true, ...prev }));
+      // Apenas define o estado se ele ainda não foi definido para evitar re-renderizações desnecessárias
+      setOpenDates(prev => {
+        if (prev[defaultOpenKey]) return prev;
+        return { ...prev, [defaultOpenKey]: true };
+      });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(groupedVideos)]); // Roda quando os dados mudam
+  }, [sortedDateKeys, groupedVideos]);
+
 
   const toggleDateGroup = (date: string) => {
     setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
@@ -90,7 +91,7 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
               className="flex justify-between items-center w-full p-4 text-left"
             >
               <h3 className="text-lg font-semibold text-teal-400 capitalize">
-                {formatDateKeyForTitle(dateKey)}
+                {formatDateKey(dateKey)}
               </h3>
               <ChevronDown
                 size={20}
@@ -116,7 +117,7 @@ const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
                         <div className="flex justify-between items-start">
                           <h4 className="text-base font-medium text-white flex-1 pr-2">{video.title}</h4>
                           <span className={`px-2 py-1 text-xs font-semibold rounded-full ${video.is_posted ? 'bg-green-500/20 text-green-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
-                            {video.is_posted ? 'Postado' : 'Agendado'}
+                            {video.is_posted ? 'Postado' : 'Postado'}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2 mt-4">
