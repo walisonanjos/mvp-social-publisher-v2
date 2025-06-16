@@ -4,7 +4,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createClient } from '../../../lib/supabaseClient'; // Ajustando o caminho
+// MUDANÇA: Usando o atalho '@/' para um caminho mais robusto
+import { createClient } from '@/lib/supabaseClient'; 
 
 export default function AuthCallback() {
   const [message, setMessage] = useState('Autenticando com o Google, por favor aguarde...');
