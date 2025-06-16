@@ -20,21 +20,19 @@ serve(async (_req) => {
       throw new Error('GOOGLE_CLIENT_ID não encontrado nos segredos do projeto.');
     }
 
-    // Definindo os escopos (permissões) que vamos solicitar
     const scopes = [
       'https://www.googleapis.com/auth/youtube.upload',
       'https://www.googleapis.com/auth/userinfo.profile',
       'https://www.googleapis.com/auth/userinfo.email'
-    ].join(' '); // Os escopos precisam ser separados por espaços
+    ].join(' ');
 
-    // Montando os parâmetros da URL
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       response_type: 'code',
       scope: scopes,
-      access_type: 'offline', // Pede um "refresh token" para manter o acesso
-      prompt: 'consent' // Garante que a tela de consentimento sempre apareça
+      access_type: 'offline',
+      prompt: 'consent'
     });
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
