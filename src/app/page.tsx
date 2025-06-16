@@ -3,7 +3,6 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-// MUDANÇA: 'Link' foi removido desta linha de import
 import Auth from "../components/Auth";
 import UploadForm from "../components/UploadForm";
 import VideoList from "../components/VideoList";
@@ -11,8 +10,8 @@ import { createClient } from "../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { RefreshCw } from "lucide-react";
 import Navbar from "../components/Navbar";
+import AccountConnection from "../components/AccountConnection"; // Importando o novo componente
 
-// ... (todo o resto do arquivo permanece exatamente igual) ...
 export interface Video {
   id: string;
   title: string;
@@ -34,7 +33,7 @@ export default function Home() {
 
   const fetchVideos = useCallback(async (userId: string) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Define para o início do dia
+    today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
 
     const { data, error } = await supabase
@@ -50,7 +49,7 @@ export default function Home() {
       setVideos(data || []);
     }
   }, [supabase]);
-  
+
   const groupedVideos = useMemo(() => {
     const groups: { [key: string]: Video[] } = {};
     videos.forEach((video) => {
@@ -82,7 +81,7 @@ export default function Home() {
     if (!user) return;
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'videos' }, () => {
-        fetchVideos(user.id);
+        if (user) { fetchVideos(user.id); }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); }
@@ -122,15 +121,28 @@ export default function Home() {
         <div className="mt-8">
             <UploadForm />
         </div>
+        
+        {/* MUDANÇA: Adicionado o novo componente de conexão de contas */}
+        <div className="mt-8">
+            <AccountConnection />
+        </div>
+
         <hr className="my-8 border-gray-700" />
+        
         <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold tracking-tight text-white">
                 Meus Agendamentos
             </h2>
-            <button onClick={() => user && fetchVideos(user.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors" title="Atualizar lista">
-                <RefreshCw size={14} /><span>Atualizar</span>
+            <button 
+                onClick={() => user && fetchVideos(user.id)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors"
+                title="Atualizar lista"
+            >
+                <RefreshCw size={14} />
+                <span>Atualizar</span>
             </button>
         </div>
+
         <VideoList groupedVideos={groupedVideos} onDelete={handleDeleteVideo} />
       </main>
     </div>
