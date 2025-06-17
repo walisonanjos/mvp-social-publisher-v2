@@ -45,7 +45,6 @@ export default function CallbackHandler() {
     }
   }, [searchParams, router]);
 
-  // Este componente agora só retorna a mensagem, não a página inteira.
   if (error) {
     return <p className="text-red-400">{error}</p>;
   }
