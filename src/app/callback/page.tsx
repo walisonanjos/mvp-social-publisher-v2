@@ -4,8 +4,10 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-// MUDANÇA: Usando o atalho '@/' para um caminho mais robusto
-import { createClient } from '@/lib/supabaseClient'; 
+import { createClient } from '@/lib/supabaseClient';
+
+// MUDANÇA: Adicionada esta linha para forçar a renderização dinâmica e corrigir o build
+export const dynamic = 'force-dynamic';
 
 export default function AuthCallback() {
   const [message, setMessage] = useState('Autenticando com o Google, por favor aguarde...');
@@ -20,7 +22,6 @@ export default function AuthCallback() {
     if (code) {
       const exchangeCodeForTokens = async () => {
         try {
-          // Chama nossa nova função de backend para fazer a troca do código
           const { error: invokeError } = await supabase.functions.invoke('exchange-auth-code', {
             body: { code },
           });
@@ -28,7 +29,6 @@ export default function AuthCallback() {
           if (invokeError) throw invokeError;
 
           setMessage('Sucesso! Redirecionando para o seu painel...');
-          // Redireciona de volta para a página principal após 2 segundos
           setTimeout(() => {
             router.push('/');
           }, 2000);
