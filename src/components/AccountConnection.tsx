@@ -3,22 +3,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Youtube } from 'lucide-react';
+import { Youtube, CheckCircle, XCircle } from 'lucide-react';
 import { createClient } from '../lib/supabaseClient';
 
-export default function AccountConnection() {
+interface AccountConnectionProps {
+  isYouTubeConnected: boolean;
+  onDisconnectYouTube: () => void;
+}
+
+export default function AccountConnection({ isYouTubeConnected, onDisconnectYouTube }: AccountConnectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      // Chamando nossa função de backend para pegar a URL de autorização
       const { data, error } = await supabase.functions.invoke('generate-youtube-auth-url');
-
       if (error) throw error;
-
-      // Redireciona o usuário para a página de consentimento do Google
       if (data.url) {
         window.location.href = data.url;
       }
@@ -33,16 +34,37 @@ export default function AccountConnection() {
     <div className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700">
       <h2 className="text-xl font-bold text-white mb-4">Conectar Contas</h2>
       <p className="text-gray-400 mb-6">
-        Conecte suas contas de redes sociais para começar a agendar suas postagens.
+        {isYouTubeConnected 
+          ? 'Sua conta do YouTube está pronta para postagens.' 
+          : 'Conecte suas contas de redes sociais para começar a agendar.'
+        }
       </p>
-      <button
-        onClick={handleConnect}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-red-600/50 bg-red-600/20 hover:bg-red-600/30 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
-      >
-        <Youtube size={20} />
-        <span>{isLoading ? 'Aguarde...' : 'Conectar com YouTube'}</span>
-      </button>
+
+      {isYouTubeConnected ? (
+        // UI para quando a conta ESTÁ conectada
+        <div className="p-4 bg-green-900/50 border border-green-500/30 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-green-400" size={24} />
+            <span className="font-medium text-green-300">YouTube Conectado</span>
+          </div>
+          <button
+            onClick={onDisconnectYouTube}
+            className="text-xs text-red-400 hover:text-red-300 hover:underline"
+          >
+            Desconectar
+          </button>
+        </div>
+      ) : (
+        // UI para quando a conta NÃO ESTÁ conectada
+        <button
+          onClick={handleConnect}
+          disabled={isLoading}
+          className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-red-600/50 bg-red-600/20 hover:bg-red-600/30 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+        >
+          <Youtube size={20} />
+          <span>{isLoading ? 'Aguarde...' : 'Conectar com YouTube'}</span>
+        </button>
+      )}
     </div>
   );
 }
