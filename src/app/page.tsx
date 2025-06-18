@@ -43,6 +43,7 @@ export default function Home() {
   }, [videos]);
 
   const fetchPageData = useCallback(async (userId: string) => {
+    // Busca os vídeos agendados (sem alteração aqui)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
@@ -56,16 +57,18 @@ export default function Home() {
     if (videosError) console.error("Erro ao buscar vídeos:", videosError);
     else setVideos(videosData || []);
 
-    const { data: tokenData, error: tokenError } = await supabase
+    // MUDANÇA: Corrigindo a forma de buscar e ler a contagem de tokens
+    const { count, error: tokenError } = await supabase
       .from('youtube_tokens')
-      .select('user_id', { count: 'exact', head: true }) // Mais eficiente, só checa se existe
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
     
-    if (tokenError && tokenError.code !== 'PGRST116') {
+    if (tokenError) {
         console.error("Erro ao verificar token do YouTube:", tokenError);
     }
-    // se tokenData.count for maior que 0, está conectado
-    setIsYouTubeConnected(tokenData?.count ? tokenData.count > 0 : false); 
+    
+    // MUDANÇA: Usa a variável 'count' diretamente, que é um número ou null
+    setIsYouTubeConnected(count ? count > 0 : false); 
 
   }, [supabase]);
 
@@ -98,15 +101,12 @@ export default function Home() {
   
   const handleDeleteVideo = async (videoId: string) => {
     const currentVideos = videos;
-    // Atualização otimista da UI
     setVideos(current => current.filter(v => v.id !== videoId));
-    
     const { error } = await supabase.from('videos').delete().eq('id', videoId);
-    
     if (error) {
       console.error('Erro ao deletar agendamento:', error);
       alert('Não foi possível excluir o agendamento. Revertendo.');
-      setVideos(currentVideos); // Reverte a UI em caso de erro
+      setVideos(currentVideos);
     }
   };
   
