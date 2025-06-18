@@ -40,17 +40,22 @@ serve(async (req) => {
       body: tokenParams.toString(),
     })
 
-    const responseBodyText = await tokenResponse.text();
-    // MUDANÇA: Log de depuração para ver a resposta bruta do Google
-    console.log('Resposta bruta do Google:', responseBodyText);
-
-    const tokens = JSON.parse(responseBodyText);
-
-    const { access_token, refresh_token, expiry_date } = tokens;
-
-    if (!access_token || !expiry_date) {
-      throw new Error('Resposta do Google não continha os tokens necessários.');
+    if (!tokenResponse.ok) {
+      const errorBody = await tokenResponse.json();
+      throw new Error(`Falha ao obter token do Google: ${errorBody.error_description || 'Erro desconhecido'}`);
     }
+
+    const tokens = await tokenResponse.json();
+
+    // MUDANÇA 1: Lendo 'expires_in' em vez do inexistente 'expiry_date'
+    const { access_token, refresh_token, expires_in } = tokens;
+
+    if (!access_token || !expires_in) {
+      throw new Error('Resposta do Google não continha access_token ou expires_in.');
+    }
+
+    // MUDANÇA 2: Calculando a data de expiração correta
+    const expiryDate = new Date(Date.now() + (expires_in * 1000)).toISOString();
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -64,7 +69,7 @@ serve(async (req) => {
     const tokenDataToUpsert = {
         user_id: user.id,
         access_token: access_token,
-        expiry_date: new Date(Date.now() + (expiry_date * 1000)).toISOString(),
+        expiry_date: expiryDate, // Usando a data calculada
         ...(refresh_token && { refresh_token: refresh_token })
     };
 
