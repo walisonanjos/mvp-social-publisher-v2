@@ -3,7 +3,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Youtube, CheckCircle, XCircle } from 'lucide-react';
+// MUDANÇA: 'XCircle' foi removido da lista de imports
+import { Youtube, CheckCircle } from 'lucide-react'; 
 import { createClient } from '../lib/supabaseClient';
 
 interface AccountConnectionProps {
@@ -41,7 +42,6 @@ export default function AccountConnection({ isYouTubeConnected, onDisconnectYouT
       </p>
 
       {isYouTubeConnected ? (
-        // UI para quando a conta ESTÁ conectada
         <div className="p-4 bg-green-900/50 border border-green-500/30 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <CheckCircle className="text-green-400" size={24} />
@@ -55,7 +55,6 @@ export default function AccountConnection({ isYouTubeConnected, onDisconnectYouT
           </button>
         </div>
       ) : (
-        // UI para quando a conta NÃO ESTÁ conectada
         <button
           onClick={handleConnect}
           disabled={isLoading}

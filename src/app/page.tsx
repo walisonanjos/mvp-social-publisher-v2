@@ -13,7 +13,6 @@ import Navbar from "../components/Navbar";
 import AccountConnection from "../components/AccountConnection";
 
 export interface Video {
-  // ... (interface Video permanece igual)
   id: string;
   title: string;
   video_url: string;
@@ -31,14 +30,19 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  // MUDANÇA: Novo estado para controlar a conexão com o YouTube
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
 
-  // ... (groupedVideos e sortVideos permanecem iguais)
-  const groupedVideos = useMemo(() => { /* ... */ }, [videos]);
+  const groupedVideos = useMemo(() => {
+    const groups: { [key: string]: Video[] } = {};
+    videos.forEach((video) => {
+      const dateKey = new Date(video.scheduled_at).toISOString().split('T')[0];
+      if (!groups[dateKey]) { groups[dateKey] = []; }
+      groups[dateKey].push(video);
+    });
+    return groups;
+  }, [videos]);
 
   const fetchPageData = useCallback(async (userId: string) => {
-    // Busca os vídeos agendados
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
@@ -52,17 +56,16 @@ export default function Home() {
     if (videosError) console.error("Erro ao buscar vídeos:", videosError);
     else setVideos(videosData || []);
 
-    // MUDANÇA: Verifica se há tokens do YouTube para o usuário
     const { data: tokenData, error: tokenError } = await supabase
       .from('youtube_tokens')
-      .select('user_id')
-      .eq('user_id', userId)
-      .single(); // .single() pega um registro ou retorna null/erro se não achar
+      .select('user_id', { count: 'exact', head: true }) // Mais eficiente, só checa se existe
+      .eq('user_id', userId);
     
-    if (tokenError && tokenError.code !== 'PGRST116') { // Ignora erro 'PGRST116' (nenhuma linha encontrada)
+    if (tokenError && tokenError.code !== 'PGRST116') {
         console.error("Erro ao verificar token do YouTube:", tokenError);
     }
-    setIsYouTubeConnected(!!tokenData); // Define como true se encontrar dados, senão false
+    // se tokenData.count for maior que 0, está conectado
+    setIsYouTubeConnected(tokenData?.count ? tokenData.count > 0 : false); 
 
   }, [supabase]);
 
@@ -74,7 +77,6 @@ export default function Home() {
       setLoading(false);
     };
     setupPage();
-
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -84,7 +86,6 @@ export default function Home() {
     return () => { authListener.subscription.unsubscribe(); };
   }, [supabase, fetchPageData]);
   
-  // ... (useEffect de Realtime permanece igual) ...
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel(`videos_realtime_user_${user.id}`)
@@ -95,10 +96,23 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); }
   }, [user, supabase, fetchPageData]);
   
-  // MUDANÇA: Nova função para desconectar a conta do YouTube
+  const handleDeleteVideo = async (videoId: string) => {
+    const currentVideos = videos;
+    // Atualização otimista da UI
+    setVideos(current => current.filter(v => v.id !== videoId));
+    
+    const { error } = await supabase.from('videos').delete().eq('id', videoId);
+    
+    if (error) {
+      console.error('Erro ao deletar agendamento:', error);
+      alert('Não foi possível excluir o agendamento. Revertendo.');
+      setVideos(currentVideos); // Reverte a UI em caso de erro
+    }
+  };
+  
   const handleDisconnectYouTube = async () => {
     if (!user) return;
-    const { error } = await supabase.from('youtube_tokens').delete().match({ user_id: user.id });
+    const { error } = await supabase.from('youtube_tokens').delete().eq('user_id', user.id);
     if (error) {
       alert("Erro ao desconectar a conta.");
     } else {
@@ -107,30 +121,39 @@ export default function Home() {
     }
   };
 
-  const handleDeleteVideo = async (videoId: string) => { /* ... (sem mudanças) ... */ };
-
   if (loading) { return <div className="flex items-center justify-center min-h-screen bg-gray-900"><p className="text-white">Carregando...</p></div>; }
   if (!user) { return <Auth />; }
 
   return (
     <div className="bg-gray-900 min-h-screen text-white">
-      <header> {/* ... (sem mudanças) ... */} </header>
+      <header className="bg-gray-800/80 backdrop-blur-sm p-4 border-b border-gray-700 sticky top-0 z-20">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold text-teal-400">Social Publisher</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-300">Olá, <strong className="font-medium text-white">{user.email?.split("@")[0]}</strong></span>
+            <button
+              onClick={async () => await supabase.auth.signOut()}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </header>
+
       <main className="container mx-auto p-4 md:p-8">
         <Navbar />
         <div className="mt-8"><UploadForm /></div>
-        
         <div className="mt-8">
-          {/* MUDANÇA: Passando o status e a função de desconectar para o componente */}
           <AccountConnection 
             isYouTubeConnected={isYouTubeConnected}
             onDisconnectYouTube={handleDisconnectYouTube}
           />
         </div>
-
         <hr className="my-8 border-gray-700" />
         <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold tracking-tight text-white">Meus Agendamentos</h2>
-            <button onClick={() => user && fetchPageData(user.id)} /* ... */ >
+            <button onClick={() => user && fetchPageData(user.id)} className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg transition-colors" title="Atualizar lista">
                 <RefreshCw size={14} /><span>Atualizar</span>
             </button>
         </div>
