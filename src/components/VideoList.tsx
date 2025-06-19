@@ -1,142 +1,111 @@
 // src/components/VideoList.tsx
-
-import React, { useState, useEffect } from 'react';
+'use client';
 import { Video } from '../app/page';
-import { Instagram, Facebook, Youtube, MessageSquare, Waypoints, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface VideoListProps {
   groupedVideos: { [key: string]: Video[] };
   onDelete: (videoId: string) => void;
 }
 
-const SocialIcon = ({ platform }: { platform: string }) => {
-  // ... (código dos ícones permanece igual) ...
-  switch (platform) {
-    case 'instagram':
-      return <Instagram size={16} className="text-pink-500" />;
-    case 'facebook':
-      return <Facebook size={16} className="text-blue-600" />;
-    case 'youtube':
-      return <Youtube size={16} className="text-red-600" />;
-    case 'tiktok':
-      return <MessageSquare size={16} className="text-cyan-400" />;
-    case 'kwai':
-      return <Waypoints size={16} className="text-orange-500" />;
-    default:
-      return null;
-  }
+const statusStyles = {
+  agendado: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  postado: 'bg-green-500/20 text-green-300 border-green-500/30',
+  falhou: 'bg-red-500/20 text-red-300 border-red-500/30',
 };
 
-const VideoList: React.FC<VideoListProps> = ({ groupedVideos, onDelete }) => {
-  const [openDates, setOpenDates] = useState<Record<string, boolean>>({});
+function VideoCard({ video, onDelete }: { video: Video; onDelete: (id: string) => void }) {
+  return (
+    <div className="bg-gray-800/50 p-4 rounded-lg flex flex-col justify-between gap-3 border border-gray-700/80">
+      <div className="flex justify-between items-start">
+        <span className="font-medium text-white break-all">{video.title}</span>
+        <div
+          className={`text-xs font-bold px-2 py-1 rounded-full border ${statusStyles[video.status]}`}
+        >
+          {video.status.charAt(0).toUpperCase() + video.status.slice(1)}
+        </div>
+      </div>
+      <div className="flex justify-between items-center">
+        <div className="text-gray-400 text-sm">
+          {format(new Date(video.scheduled_at), 'HH:mm')}
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Ícone de Link para Vídeos Postados */}
+          {video.status === 'postado' && video.youtube_video_id && (
+            <Link
+              href={`https://youtu.be/${video.youtube_video_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+              title="Ver no YouTube"
+            >
+              <LinkIcon size={16} />
+            </Link>
+          )}
+          {/* Ícone de Erro para Vídeos que Falharam */}
+          {video.status === 'falhou' && video.post_error && (
+            <div className="text-red-400 cursor-help" title={`Motivo da falha: ${video.post_error}`}>
+              <AlertTriangle size={16} />
+            </div>
+          )}
+          <button
+            onClick={() => onDelete(video.id)}
+            className="text-xs text-red-500 hover:text-red-400"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-BR', { timeStyle: 'short' }).format(date);
+export default function VideoList({ groupedVideos, onDelete }: VideoListProps) {
+  const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({});
+  const sortedGroupKeys = Object.keys(groupedVideos).sort();
+
+  const toggleGroup = (key: string) => {
+    setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const formatDateKeyForTitle = (dateKey: string) => {
-    const date = new Date(dateKey + 'T12:00:00');
-    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(date);
-  };
-  
-  const sortedDateKeys = Object.keys(groupedVideos).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-  useEffect(() => {
-    if (sortedDateKeys.length > 0) {
-      const today = new Date();
-      const todayKey = today.toISOString().split('T')[0];
-      
-      let defaultOpenKey = sortedDateKeys[0]; 
-      
-      if (groupedVideos[todayKey]) {
-        defaultOpenKey = todayKey;
-      }
-      
-      setOpenDates(prev => {
-        if (Object.keys(prev).length === 0) { // Abre apenas na primeira vez
-          return { [defaultOpenKey]: true };
-        }
-        return prev;
-      });
-    }
-  }, [sortedDateKeys, groupedVideos]);
-
-  const toggleDateGroup = (date: string) => {
-    setOpenDates(prev => ({ ...prev, [date]: !prev[date] }));
-  };
-
-  if (sortedDateKeys.length === 0) {
+  if (sortedGroupKeys.length === 0) {
     return (
-      <div className="mt-10 rounded-lg border border-dashed border-gray-700 bg-gray-800/50 p-12 text-center">
-        <h3 className="text-lg font-medium text-white">Nenhum agendamento por aqui</h3>
-        <p className="mt-2 text-sm text-gray-400">Use o formulário acima para agendar sua primeira postagem.</p>
+      <div className="text-center py-10 bg-gray-800/30 rounded-lg">
+        <p className="text-gray-400">Você ainda não tem nenhum agendamento.</p>
       </div>
     );
   }
 
   return (
-    <div className="mt-12 space-y-4">
-      {/* Removido o H2 'Meus Agendamentos' daqui para evitar duplicação, já que ele está em page.tsx */}
-      {sortedDateKeys.map(dateKey => {
-        const isOpen = openDates[dateKey] ?? false;
-        
+    <div className="space-y-6">
+      {sortedGroupKeys.map((dateKey) => {
+        const date = new Date(dateKey + 'T12:00:00'); // Adiciona hora para evitar problemas de fuso
+        const isGroupOpen = openGroups[dateKey] ?? true;
         return (
-          <div key={dateKey} className="bg-gray-800/50 rounded-lg border border-gray-700/50">
+          <div key={dateKey}>
             <button
-              onClick={() => toggleDateGroup(dateKey)}
-              className="flex justify-between items-center w-full p-4 text-left"
+              onClick={() => toggleGroup(dateKey)}
+              className="flex justify-between items-center w-full text-left mb-3"
             >
               <h3 className="text-lg font-semibold text-teal-400 capitalize">
-                {/* MUDANÇA: Corrigido o nome da função aqui */}
-                {formatDateKeyForTitle(dateKey)}
+                {format(date, "eeee, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </h3>
-              <ChevronDown
-                size={20}
-                className={`text-teal-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-              />
+              {isGroupOpen ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
             </button>
-            
-            {isOpen && (
-              <div className="p-4 pt-0">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {groupedVideos[dateKey].map((video) => (
-                    <div
-                      key={video.id}
-                      className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-lg"
-                    >
-                      <button onClick={() => onDelete(video.id)} className="absolute top-2 right-2 z-10 p-1.5 bg-red-600/50 hover:bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Excluir agendamento">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                      <div className="aspect-w-9 aspect-h-16 bg-gray-700 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-gray-600">{formatTime(video.scheduled_at)}</span>
-                      </div>
-                      <div className="flex flex-1 flex-col p-4">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-base font-medium text-white flex-1 pr-2">{video.title}</h4>
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${video.is_posted ? 'bg-green-500/20 text-green-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
-                            {video.is_posted ? 'Postado' : 'Agendado'}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-4">
-                          {video.target_instagram && <SocialIcon platform="instagram" />}
-                          {video.target_facebook && <SocialIcon platform="facebook" />}
-                          {video.target_youtube && <SocialIcon platform="youtube" />}
-                          {video.target_tiktok && <SocialIcon platform="tiktok" />}
-                          {video.target_kwai && <SocialIcon platform="kwai" />}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {isGroupOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {groupedVideos[dateKey].map((video) => (
+                  <VideoCard key={video.id} video={video} onDelete={onDelete} />
+                ))}
               </div>
             )}
           </div>
-        )
+        );
       })}
     </div>
   );
-};
-
-export default VideoList;
+}

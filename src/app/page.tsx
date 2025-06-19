@@ -12,18 +12,22 @@ import { RefreshCw } from "lucide-react";
 import Navbar from "../components/Navbar";
 import AccountConnection from "../components/AccountConnection";
 
+// Dentro de src/app/page.tsx
+
 export interface Video {
   id: string;
   title: string;
   video_url: string;
   scheduled_at: string;
-  is_posted: boolean;
-  target_instagram: boolean;
-  target_facebook: boolean;
-  target_youtube: boolean;
-  target_tiktok: boolean;
-  target_kwai: boolean;
+  // MUDANÇAS AQUI:
+  status: 'agendado' | 'postado' | 'falhou';
+  youtube_video_id: string | null;
+  post_error: string | null;
+  // Removidas as colunas target_* que não estamos usando
 }
+
+// O resto do arquivo page.tsx pode continuar o mesmo por enquanto,
+// apenas garanta que a interface Video esteja atualizada.
 
 export default function Home() {
   const supabase = createClient();
