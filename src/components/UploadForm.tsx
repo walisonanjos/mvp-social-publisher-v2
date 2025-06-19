@@ -2,7 +2,8 @@
 'use client';
 import { useState, FormEvent } from 'react';
 import { createClient } from '../lib/supabaseClient';
-import { User } from '@supabase/supabase-js';
+// MUDANÇA: A importação do 'User' foi removida, pois não era utilizada.
+// import { User } from '@supabase/supabase-js';
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -80,9 +81,15 @@ export default function UploadForm() {
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-    } catch (err: any) {
+    // MUDANÇA: O tipo 'any' foi removido do catch para uma abordagem mais segura.
+    } catch (err) {
       console.error('Erro no agendamento:', err);
-      setError(`Ocorreu um erro inesperado. Por favor, tente novamente. (${err.message})`);
+      // Verificamos se o erro é um objeto de Erro para acessar a propriedade 'message' com segurança
+      if (err instanceof Error) {
+        setError(`Ocorreu um erro inesperado: ${err.message}`);
+      } else {
+        setError('Ocorreu um erro inesperado.');
+      }
     } finally {
       setIsUploading(false);
     }
@@ -92,6 +99,7 @@ export default function UploadForm() {
     <div className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700">
       <h2 className="text-xl font-bold text-white mb-6">Novo Agendamento</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* O restante do JSX do formulário permanece exatamente o mesmo */}
         <div>
           <label htmlFor="file-upload" className="block text-sm font-medium text-gray-300 mb-2">
             Arquivo de Vídeo
@@ -139,7 +147,6 @@ export default function UploadForm() {
             />
           </div>
           <div>
-            {/* MUDANÇA: 'h3abel' foi corrigido para 'label' */}
             <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-300">Hora do Agendamento</label>
             <input
               type="time"
