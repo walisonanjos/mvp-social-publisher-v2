@@ -1,19 +1,8 @@
 // src/components/UploadForm.tsx
-
 'use client';
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import { createClient } from '../lib/supabaseClient';
-
-const initialTargets = {
-  instagram: false,
-  facebook: false,
-  youtube: false,
-  tiktok: false,
-  kwai: false,
-};
-
-const timeSlots = ['09:00', '11:00', '13:00', '15:00', '17:00'];
+import { User } from '@supabase/supabase-js';
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -21,209 +10,195 @@ export default function UploadForm() {
   const [description, setDescription] = useState('');
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  const [socialTargets, setSocialTargets] = useState(initialTargets);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // MUDANÇA: O 'useEffect' agora só limpa a mensagem se for do tipo 'error'.
-  useEffect(() => {
-    if (message?.type === 'error') {
-      setMessage(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, file, scheduleDate, scheduleTime, socialTargets]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
+  // Estados para os checkboxes das redes sociais
+  const [postToYouTube, setPostToYouTube] = useState(false);
+  // Adicione outros aqui se necessário (Facebook, Instagram, etc.)
 
   const supabase = createClient();
-  const UPLOAD_PRESET = 'zupltfoo';
-  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFile(e.target.files[0]);
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
-  const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setSocialTargets(prevTargets => ({ ...prevTargets, [name]: checked }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    const isAnyTargetSelected = Object.values(socialTargets).some(target => target === true);
-    if (!file || !scheduleDate || !scheduleTime || !title.trim() || !isAnyTargetSelected) {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos, incluindo pelo menos uma rede social.' });
+    if (!file || !title || !scheduleDate || !scheduleTime || !postToYouTube) {
+      setError('Por favor, preencha todos os campos obrigatórios e selecione pelo menos o YouTube.');
       return;
     }
-    
-    setIsLoading(true);
-    setMessage(null);
 
-    const scheduled_at = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
+    setIsUploading(true);
+    setError('');
+    setSuccessMessage('');
 
     try {
-      const cloudinaryResponse = await fetch(UPLOAD_URL, { method: 'POST', body: formData });
+      // 1. Upload do vídeo para o Cloudinary (como antes)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+      
+      const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!cloudinaryResponse.ok) {
+        throw new Error('Falha no upload para o Cloudinary.');
+      }
       const cloudinaryData = await cloudinaryResponse.json();
       const videoUrl = cloudinaryData.secure_url;
-      if (!videoUrl) throw new Error('Falha no upload para o Cloudinary.');
 
+      // 2. Salvar metadados no Supabase (A CORREÇÃO ESTÁ AQUI)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado.');
 
-      const { error: supabaseError } = await supabase
-        .from('videos')
-        .insert([{ 
-          video_url: videoUrl, 
-          user_id: user.id,
-          title: title,
-          description: description,
-          scheduled_at: scheduled_at,
-          is_posted: false,
-          target_instagram: socialTargets.instagram,
-          target_facebook: socialTargets.facebook,
-          target_youtube: socialTargets.youtube,
-          target_tiktok: socialTargets.tiktok,
-          target_kwai: socialTargets.kwai,
-        }]);
-      if (supabaseError) throw supabaseError;
+      const scheduled_at = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
 
-      const friendlyDate = new Date(scheduleDate + 'T12:00:00').toLocaleDateString('pt-BR');
-      setMessage({ type: 'success', text: `Agendamento realizado para ${friendlyDate} às ${scheduleTime}.` });
-      
+      // MUDANÇA: O objeto de inserção foi atualizado para o novo formato da tabela.
+      // Removemos 'is_posted' e os 'target_*' que não estão sendo usados.
+      // A coluna 'status' receberá o valor 'agendado' por padrão no banco de dados.
+      const { error: insertError } = await supabase
+        .from('videos')
+        .insert({
+          user_id: user.id,
+          title,
+          description,
+          video_url: videoUrl,
+          scheduled_at,
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      setSuccessMessage('Seu vídeo foi agendado com sucesso!');
+      // Limpar formulário
       setFile(null);
       setTitle('');
       setDescription('');
       setScheduleDate('');
       setScheduleTime('');
-      setSocialTargets(initialTargets);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setPostToYouTube(false);
+      // Força o reset do input de arquivo
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
 
-    } catch (error) {
-      console.error('Erro no processo de agendamento:', error);
-      const errorMessage = (error as Error).message;
-      if (errorMessage.includes('unique_user_schedule')) {
-          setMessage({ type: 'error', text: 'Você já possui um agendamento para este mesmo dia e horário.' });
-      } else {
-          setMessage({ type: 'error', text: 'Ocorreu um erro inesperado. Por favor, tente novamente.' });
-      }
+    } catch (err: any) {
+      console.error('Erro no agendamento:', err);
+      setError(`Ocorreu um erro inesperado. Por favor, tente novamente. (${err.message})`);
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700 space-y-6">
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Vídeo</label>
-        <div className="mt-1">
-          <input 
-            type="file" 
-            accept="video/*" 
-            onChange={handleFileChange} 
-            disabled={isLoading} 
-            ref={fileInputRef}
-            className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-600/20 file:text-teal-300 hover:file:bg-teal-600/30"
+    <div className="bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700">
+      <h2 className="text-xl font-bold text-white mb-6">Novo Agendamento</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="file-upload" className="block text-sm font-medium text-gray-300 mb-2">
+            Arquivo de Vídeo
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            accept="video/mp4,video/quicktime"
+            onChange={handleFileChange}
+            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-500/10 file:text-teal-300 hover:file:bg-teal-500/20"
           />
         </div>
-      </div>
 
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-300">Título</label>
-        <input 
-          id="title" 
-          type="text" 
-          value={title} 
-          onChange={(e) => setTitle(e.target.value)} 
-          required
-          className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-300">Descrição</label>
-        <textarea 
-          id="description" 
-          value={description} 
-          onChange={(e) => setDescription(e.target.value)} 
-          rows={3}
-          className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-300">Data do Agendamento</label>
-          <input 
-            id="scheduleDate" 
-            type="date" 
-            value={scheduleDate} 
-            onChange={(e) => setScheduleDate(e.target.value)} 
-            required
-            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-            onClick={(e) => (e.target as HTMLInputElement).showPicker()}
+          <label htmlFor="title" className="block text-sm font-medium text-gray-300">Título</label>
+          <input
+            type="text"
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-teal-500 focus:border-teal-500"
           />
         </div>
+
         <div>
-          <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-300">Hora do Agendamento</label>
-          <select 
-            id="scheduleTime" 
-            value={scheduleTime} 
-            onChange={(e) => setScheduleTime(e.target.value)} 
-            required
-            className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-sm shadow-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-          >
-            <option value="" disabled>Selecione a hora</option>
-            {timeSlots.map(time => (
-              <option key={time} value={time}>{time}</option>
-            ))}
-          </select>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-300">Descrição</label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+          />
         </div>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-300">Postar em:</label>
-        <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-4">
-          {Object.keys(initialTargets).map(key => (
-            <label key={key} className="flex items-center space-x-2">
-              <input 
-                type="checkbox" 
-                name={key} 
-                checked={socialTargets[key as keyof typeof socialTargets]} 
-                onChange={handleTargetChange}
-                className="h-4 w-4 rounded border-gray-500 text-teal-600 focus:ring-teal-500 bg-gray-700"
-              />
-              <span className="text-sm text-gray-300">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-300">Data do Agendamento</label>
+            <input
+              type="date"
+              id="scheduleDate"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              className="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-300">Hora do Agendamento</h3abel>
+            <input
+              type="time"
+              id="scheduleTime"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              className="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-medium text-gray-300 mb-2">Postar em:</h3>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Instagram
             </label>
-          ))}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Facebook
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={postToYouTube}
+                onChange={(e) => setPostToYouTube(e.target.checked)}
+                className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500"
+              /> YouTube
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Tiktok
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Kwai
+            </label>
+          </div>
         </div>
-      </div>
-      
-      <button 
-        type="submit"
-        disabled={isLoading}
-        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-teal-500 disabled:bg-gray-600 disabled:cursor-not-allowed"
-      >
-        {isLoading ? 'Agendando...' : 'Agendar Post'}
-      </button>
 
-      {message && (
-        <div className={`text-center text-sm mt-4 p-3 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-900/50 text-green-300' 
-            : 'bg-red-900/50 text-white' 
-        }`}>
-          {message.text}
+        <div>
+          <button
+            type="submit"
+            disabled={isUploading}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-teal-500 disabled:opacity-50"
+          >
+            {isUploading ? 'Agendando...' : 'Agendar Post'}
+          </button>
         </div>
-      )}
-    </form>
+
+        {error && <div className="bg-red-500/20 text-red-300 p-3 rounded-md text-sm">{error}</div>}
+        {successMessage && <div className="bg-green-500/20 text-green-300 p-3 rounded-md text-sm">{successMessage}</div>}
+
+      </form>
+    </div>
   );
 }
