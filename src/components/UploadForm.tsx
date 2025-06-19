@@ -14,9 +14,7 @@ export default function UploadForm() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Estados para os checkboxes das redes sociais
   const [postToYouTube, setPostToYouTube] = useState(false);
-  // Adicione outros aqui se necessário (Facebook, Instagram, etc.)
 
   const supabase = createClient();
 
@@ -38,7 +36,6 @@ export default function UploadForm() {
     setSuccessMessage('');
 
     try {
-      // 1. Upload do vídeo para o Cloudinary (como antes)
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
@@ -54,15 +51,11 @@ export default function UploadForm() {
       const cloudinaryData = await cloudinaryResponse.json();
       const videoUrl = cloudinaryData.secure_url;
 
-      // 2. Salvar metadados no Supabase (A CORREÇÃO ESTÁ AQUI)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado.');
 
       const scheduled_at = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
 
-      // MUDANÇA: O objeto de inserção foi atualizado para o novo formato da tabela.
-      // Removemos 'is_posted' e os 'target_*' que não estão sendo usados.
-      // A coluna 'status' receberá o valor 'agendado' por padrão no banco de dados.
       const { error: insertError } = await supabase
         .from('videos')
         .insert({
@@ -78,14 +71,12 @@ export default function UploadForm() {
       }
 
       setSuccessMessage('Seu vídeo foi agendado com sucesso!');
-      // Limpar formulário
       setFile(null);
       setTitle('');
       setDescription('');
       setScheduleDate('');
       setScheduleTime('');
       setPostToYouTube(false);
-      // Força o reset do input de arquivo
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
@@ -148,7 +139,8 @@ export default function UploadForm() {
             />
           </div>
           <div>
-            <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-300">Hora do Agendamento</h3abel>
+            {/* MUDANÇA: 'h3abel' foi corrigido para 'label' */}
+            <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-300">Hora do Agendamento</label>
             <input
               type="time"
               id="scheduleTime"
@@ -162,10 +154,10 @@ export default function UploadForm() {
         <div>
           <h3 className="text-sm font-medium text-gray-300 mb-2">Postar em:</h3>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer text-gray-500">
               <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Instagram
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer text-gray-500">
               <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Facebook
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -176,10 +168,10 @@ export default function UploadForm() {
                 className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500"
               /> YouTube
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer text-gray-500">
               <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Tiktok
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer text-gray-500">
               <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-500 text-teal-600 focus:ring-teal-500" disabled /> Kwai
             </label>
           </div>
