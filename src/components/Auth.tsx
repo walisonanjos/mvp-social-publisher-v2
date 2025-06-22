@@ -40,7 +40,6 @@ export default function Auth() {
   };
 
   return (
-    // MUDANÇA: Adicionamos 'h-full' para que este container ocupe toda a altura disponível.
     <div className="flex flex-col justify-center items-center h-full py-12 px-4">
       
       <div className="text-center mb-8">
@@ -57,7 +56,8 @@ export default function Auth() {
         </p>
       </div>
 
-      <div className="w-full max-w-md p-8 bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
+      {/* MUDANÇA DE TESTE: Trocamos bg-gray-800 por bg-red-500 */}
+      <div className="w-full max-w-md p-8 bg-red-500 rounded-2xl shadow-xl border border-gray-700">
         <form className="space-y-6">
           {/* O resto do formulário permanece o mesmo */}
           <div>
