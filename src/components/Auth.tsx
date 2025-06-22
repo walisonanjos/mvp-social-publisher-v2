@@ -39,11 +39,9 @@ export default function Auth() {
     }
   };
 
-  // --- O JSX COM A CORREÇÃO ---
   return (
-    // MUDANÇA: Removemos as classes de layout principais daqui.
-    // A div agora só centraliza o conteúdo que está dentro dela.
-    <div className="flex flex-col justify-center items-center py-12 px-4">
+    // MUDANÇA: Adicionamos 'h-full' para que este container ocupe toda a altura disponível.
+    <div className="flex flex-col justify-center items-center h-full py-12 px-4">
       
       <div className="text-center mb-8">
         <img
