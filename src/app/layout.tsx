@@ -26,6 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
+      {/* O segredo está aqui, no className do body */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-gray-900`}
       >
