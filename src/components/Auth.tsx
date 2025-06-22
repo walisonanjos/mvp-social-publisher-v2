@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 
 export default function Auth() {
-  // MANTIVEMOS TODA A SUA LÓGICA ORIGINAL
+  // --- A LÓGICA PERMANECE A MESMA ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const supabase = createClient();
@@ -17,10 +17,7 @@ export default function Auth() {
         return;
     }
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       alert('Cadastro realizado! Verifique seu e-mail para confirmar a conta.');
     } catch (error) {
@@ -35,22 +32,19 @@ export default function Auth() {
         return;
     }
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // O redirecionamento acontecerá automaticamente pelo onAuthStateChange na page.tsx
     } catch (error) {
       alert('Erro no login: ' + (error as Error).message);
     }
   };
 
-  // A PARTIR DAQUI, A MUDANÇA É APENAS VISUAL (JSX)
+  // --- O JSX COM A CORREÇÃO ---
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center py-12 px-4">
+    // MUDANÇA: Removemos as classes de layout principais daqui.
+    // A div agora só centraliza o conteúdo que está dentro dela.
+    <div className="flex flex-col justify-center items-center py-12 px-4">
       
-      {/* Seção do Logo e Chamada */}
       <div className="text-center mb-8">
         <img
           src="/icon.png"
@@ -65,9 +59,9 @@ export default function Auth() {
         </p>
       </div>
 
-      {/* Caixa do Formulário com o novo design */}
       <div className="w-full max-w-md p-8 bg-gray-800 rounded-2xl shadow-xl border border-gray-700">
         <form className="space-y-6">
+          {/* O resto do formulário permanece o mesmo */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300">
               Email
@@ -102,17 +96,16 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Botões com novo estilo */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button 
-              type="button" // Usamos type="button" para o cadastro não submeter o form
+              type="button"
               onClick={handleSignUp}
               className="w-full flex justify-center py-3 px-4 border border-teal-500 text-teal-400 font-medium rounded-md shadow-sm hover:bg-teal-500/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-teal-500 transition-colors"
             >
               Cadastrar
             </button>
             <button
-              type="submit" // type="submit" para o login ser a ação principal
+              type="submit"
               onClick={handleSignIn}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-teal-500 transition-colors"
             >
